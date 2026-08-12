@@ -401,10 +401,17 @@ const FLIGHTS={
 
 /* ══ DAYS ══ */
 const TRIP_START="2026-08-20";
-const SEOUL={lat:37.5665,lon:126.978}, ICN={lat:37.4602,lon:126.4407};
+const ICN={lat:37.4602,lon:126.4407};
+const LOC={
+  hongdae:{lat:37.5568,lon:126.9236},
+  seongsu:{lat:37.5445,lon:127.0557},
+  myeongdong:{lat:37.5636,lon:126.9834},
+  gangnam:{lat:37.5203,lon:127.0229},
+  jamsil:{lat:37.5125,lon:127.1025}
+};
 
 const DAYS=[
-{n:1,date:"8/20",dow:"四",city:"SEOUL",...SEOUL,title:"夜抵首爾",stay:"宿 · 弘大",
+{n:1,date:"8/20",dow:"四",city:"SEOUL",...LOC.hongdae,title:"夜抵首爾",stay:"宿 · 弘大",
  events:[
   {flight:"out",key:true,when:"16:00"},
   {when:"19:45",h:"金浦入境",p:"領行李、過海關。落地到出關抓 30–40 分鐘。",spots:["김포공항"]},
@@ -413,7 +420,7 @@ const DAYS=[
  ],
  memo:{t:"抵達當天",b:"19:45 落地，進到市區差不多 21:00，今晚只安排 check-in 跟宵夜就好。機場先辦 T-money、換錢或開 eSIM。座位 13B。"}},
 
-{n:2,date:"8/21",dow:"五",city:"SEOUL",...SEOUL,title:"證件照 · 聖水洞",stay:"宿 · 弘大",
+{n:2,date:"8/21",dow:"五",city:"SEOUL",...LOC.seongsu,title:"證件照 · 聖水洞",stay:"宿 · 弘大",
  events:[
   {when:"09:30",key:true,h:"Time on Me Studio 弘大店",p:"拍證件照，含妝髮。麻浦區東橋路 156-13 B1，弘大入口站 1 號出口走 3–8 分鐘。實體照沖印約 3–5 小時後取件，不等的話可以先走。",spots:["타임온미 스튜디오 홍대"]},
   {when:"上午",h:"移動至聖水洞",p:"地鐵 2 號線直達，約 30–35 分鐘不用轉車。",spots:["성수동"]},
@@ -422,7 +429,7 @@ const DAYS=[
   {when:"傍晚",h:"聖水洞續攤",p:"沒逛夠的話 Day 4 下午可以再回來。"}
  ]},
 
-{n:3,date:"8/22",dow:"六",city:"SEOUL",...SEOUL,title:"明洞 · 剪髮購物",stay:"宿 · 弘大",
+{n:3,date:"8/22",dow:"六",city:"SEOUL",...LOC.myeongdong,title:"明洞 · 剪髮購物",stay:"宿 · 弘大",
  events:[
   {when:"10:00",key:true,h:"Juno Hair 明洞街店",p:"中區明洞 10 街 41 號 Champion 大樓 7 樓。從飯店搭地鐵約 20–25 分鐘，需轉乘一次。",spots:["준오헤어 명동스트리트점"]},
   {when:"中午",h:"明洞午餐",p:"剪完直接留在明洞開逛。",spots:["명동 맛집"]},
@@ -431,7 +438,7 @@ const DAYS=[
   {when:"晚上",h:"南山首爾塔",p:"登頂看夕陽、夜景、情人鎖。下山搭車回飯店約 20–25 分鐘。",spots:["N서울타워"]}
  ]},
 
-{n:4,date:"8/23",dow:"日",city:"SEOUL",...SEOUL,title:"古宮 · 江南",stay:"宿 · 弘大",
+{n:4,date:"8/23",dow:"日",city:"SEOUL",...LOC.gangnam,title:"古宮 · 江南",stay:"宿 · 弘大",
  events:[
   {when:"09:00",h:"景福宮",p:"可租韓服免費入場，很好拍。一早去人潮少也涼快。",spots:["경복궁"]},
   {when:"上午",h:"北村韓屋村",p:"從景福宮走過去就到。",spots:["북촌한옥마을"]},
@@ -442,7 +449,7 @@ const DAYS=[
  ],
  memo:{t:"彈性選項",b:"Day 2 的聖水洞若沒逛夠，這天下午可改成回聖水洞續攤，江南順延。東大門／DDP／廣藏市場這次先割捨，內容跟明洞、弘大、江南重疊較多。"}},
 
-{n:5,date:"8/24",dow:"一",city:"SEOUL",...SEOUL,title:"延南洞 · 醫美",stay:"宿 · 弘大",
+{n:5,date:"8/24",dow:"一",city:"SEOUL",...LOC.hongdae,title:"延南洞 · 醫美",stay:"宿 · 弘大",
  events:[
   {when:"上午",h:"延南洞",p:"首爾小京都風，選品店與質感咖啡廳。",spots:["연남동"]},
   {when:"中午",h:"延南洞午餐",spots:["연남동 맛집"]},
@@ -452,7 +459,7 @@ const DAYS=[
   {when:"晚上",h:"弘大晚餐",p:"療程結束後就近解決。",spots:["홍대 맛집"]}
  ]},
 
-{n:6,date:"8/25",dow:"二",city:"SEOUL",...SEOUL,title:"室內日 · 移動仁川",stay:"宿 · 仁川機場",
+{n:6,date:"8/25",dow:"二",city:"SEOUL",...LOC.jamsil,title:"室內日 · 移動仁川",stay:"宿 · 仁川機場",
  events:[
   {when:"上午",h:"退房、前往蠶室",p:"行李可寄放飯店或投幣寄物櫃。地鐵 2 號線直達蠶室，約 40–45 分鐘。",spots:["잠실역"]},
   {when:"白天",h:"樂天世界購物中心",p:"室內逛街、樂天世界水族館。想登高可加購 Seoul Sky 觀景台（117–122 樓，室內）。想玩設施的話樂天世界 Adventure 也幾乎全室內。",spots:["롯데월드몰","롯데월드 아쿠아리움","서울스카이"]},
