@@ -358,6 +358,28 @@ body::after{
   gap:calc(var(--u)*1.25);flex-wrap:wrap;
 }
 .fc-foot:empty{display:none}
+
+/* ══ 匯率換算 ══ 無邊框，輸入欄只用一條底線示意 */
+.fx{
+  margin-top:calc(var(--u)*.5);
+  opacity:0;animation:rise .9s .54s cubic-bezier(.2,.7,.3,1) forwards;
+}
+.fx-row{display:flex;align-items:baseline;gap:calc(var(--u)*.875);flex-wrap:wrap}
+.fx-sym{font-family:var(--f-mono);font-size:8.5px;letter-spacing:.16em;color:var(--jade)}
+.fx-eq{font-family:var(--f-mono);font-size:11px;color:var(--ink-3)}
+.fx-in{
+  font-family:var(--f-disp);font-size:18px;line-height:1.3;color:var(--ink);
+  width:76px;padding:1px 0;text-align:right;
+  background:none;border:none;border-bottom:1px solid var(--line-2);
+  border-radius:0;-webkit-appearance:none;appearance:none;
+}
+.fx-in:focus{outline:none;border-bottom-color:var(--jade)}
+.fx-in:disabled{opacity:.4}
+.fx-in::-webkit-outer-spin-button,.fx-in::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.fx-rate{
+  font-family:var(--f-mono);font-size:8.5px;letter-spacing:.1em;
+  color:var(--ink-3);margin-top:calc(var(--u)*.875);
+}
 .upd-msg{
   font-family:var(--f-mono);font-size:8.5px;letter-spacing:.1em;
   color:var(--ink-3);text-align:right;line-height:1.7;
@@ -386,7 +408,7 @@ body::after{
 }
 @media (prefers-reduced-motion:reduce){
   *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
-  .ev,.eyebrow,.hangul,.hero h1,.hero .span,.live,.fc{opacity:1!important}
+  .ev,.eyebrow,.hangul,.hero h1,.hero .span,.live,.fc,.fx{opacity:1!important}
 }
 </style>
 
@@ -421,6 +443,17 @@ body::after{
     <div class="fc">
       <div class="fc-strip" id="fcStrip"></div>
       <div class="fc-foot"><span class="upd-msg" id="updMsg"></span></div>
+    </div>
+
+    <div class="fx">
+      <div class="fx-row">
+        <span class="fx-sym">KRW</span>
+        <input class="fx-in" id="fxKrw" type="number" inputmode="decimal" placeholder="0" aria-label="韓元金額" disabled>
+        <span class="fx-eq">≈</span>
+        <span class="fx-sym">NT$</span>
+        <input class="fx-in" id="fxTwd" type="number" inputmode="decimal" placeholder="0" aria-label="新台幣金額" disabled>
+      </div>
+      <div class="fx-rate" id="fxRate">匯率讀取中…</div>
     </div>
   </header>
 
@@ -531,7 +564,8 @@ const DAYS=[
  events:[
   {when:"05:00",key:true,h:"起床、退房",p:"飯店接駁車前一晚先問好首班時間，抓 05:15 前那班到第二航廈。"},
   {when:"05:55",h:"第二航廈報到",p:"起飛前兩小時。真航空在 T2，別跑錯航廈。要辦退稅的話再往前抓 20–30 分鐘。",spots:["인천국제공항 제2여객터미널"]},
-  {flight:"in",key:true,when:"07:55"}
+  {flight:"in",key:true,when:"07:55"},
+  {when:"10:20",h:"台中機場搭接送回台南",p:"09:40 落地，領行李與通關抓 40 分鐘，約 10:20 上車。國道 4 號接國道 1 號南下約 165 公里，順暢約 2 小時，預計 12:30–13:00 到家。通關快慢會前後移動，跟司機保持聯繫。"}
  ],
  memo:{t:"航廈提醒",b:"仁川 T1 與 T2 之間接駁車約 15–20 分鐘，這個時間點跑錯航廈會來不及。訂位確認信上寫的是 Terminal 2。"}}
 ];
@@ -790,6 +824,53 @@ async function weather(d){
 
 const t=dayIndex();
 select(t>=0?t:0);
+
+/* ══ 匯率換算 ══
+   當天匯率優先走網路；抓不到就退回上次存下的，並標示日期，
+   人在韓國常常沒訊號，總比整個工具不能用好。 */
+const fxKrw=document.getElementById("fxKrw"),
+      fxTwd=document.getElementById("fxTwd"),
+      fxRate=document.getElementById("fxRate");
+let RATE=null;   /* 1 KRW = RATE TWD */
+
+const fxNum=n=>{
+  if(!isFinite(n)) return "";
+  const r=n>=100?Math.round(n):Math.round(n*100)/100;
+  return String(r);
+};
+function fxCalc(from,to,mul){
+  if(RATE==null) return;
+  const v=parseFloat(from.value);
+  if(from.value===""||!isFinite(v)){ to.value=""; return; }
+  to.value=fxNum(v*mul);
+}
+fxKrw.addEventListener("input",()=>fxCalc(fxKrw,fxTwd,RATE));
+fxTwd.addEventListener("input",()=>fxCalc(fxTwd,fxKrw,1/RATE));
+
+function fxReady(rate,stamp,stale){
+  RATE=rate;
+  fxKrw.disabled=fxTwd.disabled=false;
+  fxRate.textContent=`₩1,000 ≈ NT$${(rate*1000).toFixed(1)}　${stale?"上次更新 ":""}${stamp}`;
+  fxKrw.value="10000"; fxCalc(fxKrw,fxTwd,RATE);
+}
+
+(async()=>{
+  const saved=(()=>{ try{ return JSON.parse(localStorage.getItem("fxKRWTWD")||"null"); }catch(_){ return null; } })();
+  try{
+    const r=await fetch("https://open.er-api.com/v6/latest/KRW");
+    if(!r.ok) throw 0;
+    const j=await r.json();
+    const rate=j?.rates?.TWD;
+    if(!rate) throw 0;
+    const d=new Date(j.time_last_update_utc||Date.now());
+    const stamp=`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,"0")}.${String(d.getDate()).padStart(2,"0")}`;
+    try{ localStorage.setItem("fxKRWTWD",JSON.stringify({rate,stamp})); }catch(_){}
+    fxReady(rate,stamp,false);
+  }catch(_){
+    if(saved&&saved.rate) fxReady(saved.rate,saved.stamp||"",true);
+    else fxRate.textContent="匯率無法取得";
+  }
+})();
 
 /* ══ 手動更新 ══
    PWA 加到桌面後沒有網址列可以重新整理，這顆按鈕強制抓最新版。
