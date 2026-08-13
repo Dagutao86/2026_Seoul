@@ -613,7 +613,7 @@ DAYS.forEach((d,i)=>{
         <h3>${esc(e.h)}</h3>
         ${e.p?`<p>${esc(e.p)}</p>`:""}
         ${(e.spots||[]).length?`<div class="spots">${e.spots.map(q=>
-          `<a class="spot" href="${naver(q)}" target="_blank" rel="noopener">${PIN}${esc(q)}</a>`).join("")}</div>`:""}
+          `<a class="spot" href="${naver(q)}" data-q="${esc(q)}" target="_blank" rel="noopener">${PIN}${esc(q)}</a>`).join("")}</div>`:""}
       </div>`;
     return `<li class="ev ${e.key?"key":""}" style="animation-delay:${(.05+k*.07).toFixed(2)}s">
       <span class="dot"></span>
@@ -665,6 +665,30 @@ rail.addEventListener("keydown",e=>{
 panels.addEventListener("click",e=>{
   const b=e.target.closest("[data-fr]");
   if(b) window.open(b.dataset.fr,"_blank","noopener");
+});
+
+/* ══ NAVER MAP ══
+   手機上直接叫起 Naver Map App，不先開瀏覽器分頁再跳轉——否則每點一個地點就留下一個空分頁。
+   桌機維持開新分頁。App 沒裝、或 1.4 秒內沒切走，就退回網頁版地圖。 */
+const IS_MOBILE=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+  ||(/Macintosh/.test(navigator.userAgent)&&navigator.maxTouchPoints>1);
+
+panels.addEventListener("click",e=>{
+  const a=e.target.closest("a.spot");
+  if(!a||!IS_MOBILE) return;
+  e.preventDefault();
+
+  const web=a.href;
+  let left=false;
+  const onHide=()=>{ if(document.hidden) left=true; };
+  document.addEventListener("visibilitychange",onHide);
+  setTimeout(()=>{
+    document.removeEventListener("visibilitychange",onHide);
+    if(!left&&!document.hidden) location.href=web;
+  },1400);
+
+  location.href="nmap://search?query="+encodeURIComponent(a.dataset.q||"")
+    +"&appname=dagutao86.github.io";
 });
 
 /* ══ HERO + WEATHER ══ */
