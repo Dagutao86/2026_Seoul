@@ -51,7 +51,7 @@ body{
   font-family:var(--f-cjk);font-weight:300;
   color:var(--ink);line-height:1.85;letter-spacing:.01em;
   background:var(--paper);
-  padding-bottom:calc(var(--u)*14);
+  padding-bottom:calc(env(safe-area-inset-bottom,0px) + 104px);
   overflow-x:hidden;
 }
 
@@ -390,6 +390,70 @@ body::after{
 .upd-msg.ok{color:var(--jade)}
 .upd-msg.warn{color:var(--vermilion)}
 
+/* ══ DOCK ══ 固定在底部但刻意墊高：Android 手勢列／返回鍵會佔掉最底部 */
+.dock{
+  position:fixed;z-index:60;
+  left:50%;transform:translateX(-50%);
+  bottom:calc(env(safe-area-inset-bottom,0px) + 24px);
+  display:flex;
+  background:rgba(245,240,230,.94);
+  backdrop-filter:blur(14px);
+  border:1px solid var(--line-2);
+  box-shadow:0 2px 6px rgba(42,36,32,.06), 0 14px 34px -14px rgba(42,36,32,.30);
+}
+.dock-b{
+  appearance:none;background:none;border:none;cursor:pointer;
+  padding:calc(var(--u)*1.25) calc(var(--u)*3.25);
+  font-family:var(--f-mono);font-size:10.5px;letter-spacing:.22em;
+  color:var(--ink-3);position:relative;transition:color .25s;
+}
+.dock-b + .dock-b{border-left:1px solid var(--line)}
+.dock-b[aria-selected="true"]{color:var(--ink)}
+.dock-b[aria-selected="true"]::after{
+  content:"";position:absolute;left:50%;bottom:5px;
+  width:16px;height:2px;background:var(--vermilion);transform:translateX(-50%);
+}
+.dock-b:focus-visible{outline:1px solid var(--jade);outline-offset:-3px}
+
+/* ══ 行李清單 ══ */
+#viewBag[hidden]{display:none}
+.bag-head{padding:calc(var(--u)*7) 0 calc(var(--u)*3)}
+.bag-head h2{
+  font-family:var(--f-title);font-weight:700;
+  font-size:clamp(31px,8.6vw,39px);letter-spacing:.06em;
+  line-height:1.5;margin-top:calc(var(--u)*1);color:var(--ink);
+}
+.bag-bar{
+  display:flex;align-items:center;justify-content:space-between;gap:var(--u);
+  margin-top:calc(var(--u)*2);
+}
+.bag-count{font-family:var(--f-mono);font-size:11px;letter-spacing:.18em;color:var(--jade)}
+.bag-reset{padding:5px 11px;font-size:9px}
+.bag-sec{margin-top:calc(var(--u)*4)}
+.bag-t{
+  font-family:var(--f-mono);font-size:9px;letter-spacing:.3em;
+  color:var(--gold);font-weight:400;margin-bottom:calc(var(--u)*1);
+}
+.bag-i{
+  display:flex;align-items:flex-start;gap:calc(var(--u)*1.25);
+  padding:calc(var(--u)*1.25) 0;cursor:pointer;
+  border-bottom:1px solid var(--line);
+}
+.bag-i input{position:absolute;opacity:0;width:0;height:0}
+.bag-x{
+  flex:0 0 auto;width:16px;height:16px;margin-top:4px;
+  border:1px solid var(--line-2);background:var(--paper-2);
+  position:relative;transition:background .2s,border-color .2s;
+}
+.bag-i input:checked + .bag-x{background:var(--jade);border-color:var(--jade)}
+.bag-i input:checked + .bag-x::after{
+  content:"";position:absolute;left:5px;top:1.5px;width:4px;height:9px;
+  border:solid #fff;border-width:0 1.5px 1.5px 0;transform:rotate(45deg);
+}
+.bag-i input:focus-visible + .bag-x{outline:1px solid var(--jade);outline-offset:2px}
+.bag-l{font-family:var(--f-title);font-size:16px;line-height:1.7;color:var(--ink-2)}
+.bag-i input:checked ~ .bag-l{color:var(--ink-3);text-decoration:line-through}
+
 /* ══ MOTION ══ */
 @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 @keyframes slot{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
@@ -417,6 +481,7 @@ body::after{
 
 <div class="wrap">
 
+ <div id="viewTrip">
   <header class="hero">
     <div class="eyebrow">Seoul · 7 days 6 nights</div>
     <div class="hangul">서울<span class="seal"></span></div>
@@ -477,7 +542,26 @@ body::after{
     </dl>
     <p class="colophon">點地點開啟 Naver Map ／ 氣溫為 Open-Meteo 即時資料 ／ 登機門與行李轉盤當天於機場螢幕確認</p>
   </footer>
+ </div>
+
+ <section id="viewBag" hidden>
+   <header class="bag-head">
+     <div class="eyebrow">Packing · 出發前確認</div>
+     <h2>行李清單</h2>
+     <div class="bag-bar">
+       <span class="bag-count" id="bagCount">— / —</span>
+       <button class="btn bag-reset" id="bagReset" type="button">全部清除</button>
+     </div>
+   </header>
+   <div id="bagList"></div>
+ </section>
+
 </div>
+
+<nav class="dock" role="tablist" aria-label="切換頁面">
+  <button class="dock-b" id="dockTrip" role="tab" aria-selected="true" type="button">行程</button>
+  <button class="dock-b" id="dockBag" role="tab" aria-selected="false" type="button">行李</button>
+</nav>
 
 <script>
 /* ══ FLIGHTS ══ */
@@ -834,6 +918,111 @@ async function weather(d){
 
 const t=dayIndex();
 select(t>=0?t:0);
+
+/* ══ 行李清單 ══ 勾選狀態存 localStorage，關掉 app 再開還在 */
+const BAG=[
+ {t:"證件 · 金錢",i:[
+  "護照（確認效期，回程 8/26）",
+  "電子機票／訂位確認信（IT662 · LJ735）",
+  "信用卡（出發前開通海外交易）",
+  "少量韓元現金備用",
+  "旅遊平安險保單"]},
+ {t:"電子 · 3C",i:[
+  "手機與充電線",
+  "行動電源（隨身，不可託運）",
+  "韓國插座轉接頭（220V 圓頭）",
+  "eSIM 或網卡",
+  "小風扇",
+  "相機與記憶卡"]},
+ {t:"衣物",i:[
+  "透氣上衣（8 月悶熱，多帶幾件）",
+  "好走的鞋（每天走很多路）",
+  "薄外套（室內冷氣強）",
+  "換洗內衣褲 × 7",
+  "睡衣",
+  "帽子與太陽眼鏡",
+  "輕便雨具"]},
+ {t:"盥洗 · 保養",i:[
+  "高係數防曬（紫外線強）",
+  "卸妝與洗面乳",
+  "牙刷牙膏（民宿不一定附）",
+  "保濕面膜",
+  "隱形眼鏡與藥水",
+  "小包裝旅行瓶"]},
+ {t:"藥品",i:[
+  "個人常備藥",
+  "腸胃藥",
+  "止痛藥",
+  "OK 繃（走路磨腳）",
+  "防蚊液"]},
+ {t:"醫美 · Day 5 療程",i:[
+  "術後保濕面膜",
+  "口罩與帽子（術後防曬）",
+  "溫和洗面乳",
+  "診所預約紀錄"]},
+ {t:"購物 · 退稅",i:[
+  "摺疊購物袋（Miffy Store 袋子要另外買）",
+  "行李秤（虎航與真航空都有限重）",
+  "收據夾（退稅用，護照要隨身）",
+  "預留行李空間給戰利品"]},
+ {t:"出發前一晚",i:[
+  "線上報到、存好登機證",
+  "手機與行動電源充飽",
+  "民宿地址存離線（신촌로3나길 3）",
+  "護照與現金放隨身包"]}
+];
+
+const bagList=document.getElementById("bagList"),
+      bagCount=document.getElementById("bagCount"),
+      bagReset=document.getElementById("bagReset");
+
+const bagLoad=()=>{ try{ return JSON.parse(localStorage.getItem("bagChecked")||"{}"); }catch(_){ return {}; } };
+const bagSave=s=>{ try{ localStorage.setItem("bagChecked",JSON.stringify(s)); }catch(_){} };
+let bagState=bagLoad();
+
+function bagTally(){
+  const all=bagList.querySelectorAll(".bag-i input");
+  const done=[...all].filter(x=>x.checked).length;
+  bagCount.textContent=`${done} / ${all.length}`;
+}
+
+bagList.innerHTML=BAG.map(sec=>`<section class="bag-sec">
+  <h3 class="bag-t">${esc(sec.t)}</h3>
+  ${sec.i.map(item=>`<label class="bag-i">
+    <input type="checkbox" data-k="${esc(item)}"${bagState[item]?" checked":""}>
+    <span class="bag-x"></span>
+    <span class="bag-l">${esc(item)}</span>
+  </label>`).join("")}
+</section>`).join("");
+
+bagList.addEventListener("change",e=>{
+  const box=e.target.closest("input[type=checkbox]");
+  if(!box) return;
+  const k=box.dataset.k;
+  if(box.checked) bagState[k]=1; else delete bagState[k];
+  bagSave(bagState); bagTally();
+});
+
+bagReset.addEventListener("click",()=>{
+  bagList.querySelectorAll("input[type=checkbox]").forEach(x=>x.checked=false);
+  bagState={}; bagSave(bagState); bagTally();
+});
+
+bagTally();
+
+/* ══ 頁面切換 ══ */
+const viewTrip=document.getElementById("viewTrip"), viewBag=document.getElementById("viewBag"),
+      dockTrip=document.getElementById("dockTrip"), dockBag=document.getElementById("dockBag");
+
+function showView(v){
+  const bag=v==="bag";
+  viewTrip.hidden=bag; viewBag.hidden=!bag;
+  dockTrip.setAttribute("aria-selected",String(!bag));
+  dockBag.setAttribute("aria-selected",String(bag));
+  scrollTo(0,0);
+}
+dockTrip.addEventListener("click",()=>showView("trip"));
+dockBag.addEventListener("click",()=>showView("bag"));
 
 /* ══ 匯率換算 ══
    當天匯率優先走網路；抓不到就退回上次存下的，並標示日期，
