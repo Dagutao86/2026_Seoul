@@ -76,21 +76,6 @@ body::after{
 
 /* ══ HERO ══ */
 .hero{padding:calc(var(--u)*7) 0 calc(var(--u)*3)}
-.hero-top{
-  display:flex;justify-content:space-between;align-items:flex-start;
-  gap:calc(var(--u)*1.5);
-}
-.hero-top .eyebrow{flex:1 1 auto;min-width:0;padding-top:3px}
-.upd{
-  flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;gap:5px;
-  opacity:0;animation:rise .8s .05s cubic-bezier(.2,.7,.3,1) forwards;
-}
-.upd .btn{padding:5px 11px;font-size:9px}
-.upd .btn:disabled{opacity:.5;cursor:default}
-.upd-msg{
-  font-family:var(--f-mono);font-size:8.5px;letter-spacing:.1em;
-  color:var(--ink-3);text-align:right;line-height:1.7;max-width:130px;
-}
 .eyebrow{
   font-family:var(--f-mono);font-size:9.5px;letter-spacing:.42em;
   color:var(--jade);text-transform:uppercase;
@@ -333,6 +318,37 @@ body::after{
 .foot dt{font-family:var(--f-mono);font-size:10px;letter-spacing:.2em;color:var(--ink);margin-bottom:4px}
 .foot dd{font-size:12.5px;color:var(--ink-2);line-height:2;margin-bottom:calc(var(--u)*2.5)}
 .colophon{font-family:var(--f-mono);font-size:9.5px;color:var(--ink-3);line-height:2;margin-top:calc(var(--u)*3);letter-spacing:.06em}
+/* ══ 12H FORECAST ══ 無外框，橫向捲動 */
+.fc{
+  margin-top:calc(var(--u)*2);
+  opacity:0;animation:rise .9s .46s cubic-bezier(.2,.7,.3,1) forwards;
+}
+.fc-strip{
+  display:flex;gap:calc(var(--u)*2.25);
+  overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;
+  margin:0 calc(var(--u)*-2.5);
+  padding:calc(var(--u)*.5) calc(var(--u)*2.5) calc(var(--u)*1.5);
+}
+.fc-strip::-webkit-scrollbar{display:none}
+.fc-h{flex:0 0 auto;text-align:center;min-width:36px}
+.fc-h .t{font-family:var(--f-mono);font-size:8.5px;letter-spacing:.06em;color:var(--ink-3)}
+.fc-h .g{font-size:12px;line-height:1;color:var(--jade);margin:6px 0 5px}
+.fc-h .d{font-family:var(--f-disp);font-size:18px;line-height:1;color:var(--ink)}
+.fc-msg{
+  font-family:var(--f-mono);font-size:9px;letter-spacing:.14em;
+  color:var(--ink-3);padding:calc(var(--u)*1.25) 0;
+}
+.fc-foot{
+  display:flex;justify-content:flex-end;align-items:center;
+  gap:calc(var(--u)*1.25);flex-wrap:wrap;
+}
+.fc-foot .btn{padding:5px 11px;font-size:9px}
+.fc-foot .btn:disabled{opacity:.5;cursor:default}
+.upd-msg{
+  font-family:var(--f-mono);font-size:8.5px;letter-spacing:.1em;
+  color:var(--ink-3);text-align:right;line-height:1.7;
+}
 .upd-msg.ok{color:var(--jade)}
 .upd-msg.warn{color:var(--vermilion)}
 
@@ -356,20 +372,14 @@ body::after{
 }
 @media (prefers-reduced-motion:reduce){
   *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
-  .ev,.eyebrow,.hangul,.hero h1,.hero .span,.live,.upd{opacity:1!important}
+  .ev,.eyebrow,.hangul,.hero h1,.hero .span,.live,.fc{opacity:1!important}
 }
 </style>
 
 <div class="wrap">
 
   <header class="hero">
-    <div class="hero-top">
-      <div class="eyebrow">Seoul · 7 days 6 nights</div>
-      <div class="upd">
-        <button class="btn" id="updBtn">檢查更新</button>
-        <span class="upd-msg" id="updMsg"></span>
-      </div>
-    </div>
+    <div class="eyebrow">Seoul · 7 days 6 nights</div>
     <div class="hangul">서울<span class="seal"></span></div>
     <h1>首爾七日</h1>
     <div class="span">2026.08.20 — 08.26 ／ GMP IN · ICN OUT</div>
@@ -384,6 +394,14 @@ body::after{
         <div class="temp">읽는 중</div>
         <div class="sky"></div>
         <div class="range"></div>
+      </div>
+    </div>
+
+    <div class="fc">
+      <div class="fc-strip" id="fcStrip"></div>
+      <div class="fc-foot">
+        <span class="upd-msg" id="updMsg"></span>
+        <button class="btn" id="updBtn">檢查更新</button>
       </div>
     </div>
   </header>
@@ -637,6 +655,21 @@ const SKY={0:"맑음 晴",1:"대체로 맑음 大致晴",2:"구름 조금 局部
 61:"비 小雨",63:"비 雨",65:"큰비 大雨",71:"눈 小雪",73:"눈 雪",75:"큰눈 大雪",
 80:"소나기 陣雨",81:"소나기 陣雨",82:"소나기 強陣雨",95:"뇌우 雷雨",96:"뇌우 雷雨",99:"뇌우 雷雨"};
 
+/* 逐時預報用的單字版天氣，塞在窄欄位裡才讀得動 */
+function skyShort(c){
+  if(c===0) return "晴";
+  if(c<=2) return "雲";
+  if(c===3) return "陰";
+  if(c===45||c===48) return "霧";
+  if(c>=51&&c<=57) return "雨";
+  if(c>=61&&c<=67) return "雨";
+  if(c>=71&&c<=77) return "雪";
+  if(c>=80&&c<=82) return "陣";
+  if(c>=85&&c<=86) return "雪";
+  if(c>=95) return "雷";
+  return "—";
+}
+
 const cache={};
 
 function dayIndex(){
@@ -659,32 +692,56 @@ function syncHero(){
 }
 
 async function weather(d){
-  const el=document.getElementById("wx"), key=d.lat+","+d.lon;
+  const el=document.getElementById("wx"), strip=document.getElementById("fcStrip");
+  const key=d.lat+","+d.lon;
+
+  const paintStrip=hrs=>{
+    strip.scrollLeft=0;
+    if(!hrs||!hrs.length){ strip.innerHTML='<div class="fc-msg">預報無法取得</div>'; return; }
+    strip.innerHTML=hrs.map(h=>`<div class="fc-h">
+      <div class="t">${h.when}</div>
+      <div class="g">${skyShort(h.c)}</div>
+      <div class="d">${Math.round(h.t)}°</div>
+    </div>`).join("");
+  };
+
   const paint=w=>{
     if(!w){
       el.classList.add("pending");
       el.querySelector(".temp").textContent="—";
       el.querySelector(".sky").textContent="無法取得";
       el.querySelector(".range").textContent="";
+      paintStrip(null);
       return;
     }
     el.classList.remove("pending");
     el.querySelector(".temp").innerHTML=Math.round(w.t)+'<sup>°</sup>';
     el.querySelector(".sky").textContent=SKY[w.c]||"—";
     el.querySelector(".range").textContent=w.hi!=null?`${Math.round(w.lo)}° / ${Math.round(w.hi)}°`:"";
+    paintStrip(w.hours);
   };
   if(cache[key]!==undefined) return paint(cache[key]);
 
   el.classList.add("pending");
   el.querySelector(".temp").textContent="읽는 중";
+  strip.innerHTML='<div class="fc-msg">讀取預報中…</div>';
   try{
     const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${d.lat}&longitude=${d.lon}`
-      +`&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min`
-      +`&timezone=Asia%2FSeoul&forecast_days=1`);
+      +`&current=temperature_2m,weather_code&hourly=temperature_2m,weather_code`
+      +`&daily=temperature_2m_max,temperature_2m_min`
+      +`&timezone=Asia%2FSeoul&forecast_days=2`);
     if(!r.ok) throw 0;
     const j=await r.json();
+
+    /* 逐時陣列從當天 00:00 起算，用 current.time 當基準往後取 12 筆；
+       forecast_days=2 是為了讓傍晚開啟時也跨得到隔天。 */
+    const hours=[], H=j.hourly, now=j.current?.time||"";
+    if(H&&H.time) for(let i=0;i<H.time.length&&hours.length<12;i++){
+      if(H.time[i]>now) hours.push({when:H.time[i].slice(11,16),t:H.temperature_2m[i],c:H.weather_code[i]});
+    }
+
     const w={t:j.current.temperature_2m,c:j.current.weather_code,
-      hi:j.daily?.temperature_2m_max?.[0],lo:j.daily?.temperature_2m_min?.[0]};
+      hi:j.daily?.temperature_2m_max?.[0],lo:j.daily?.temperature_2m_min?.[0],hours};
     cache[key]=w; paint(w);
   }catch(_){ cache[key]=null; paint(null); }
 }
