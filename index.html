@@ -395,23 +395,29 @@ body::after{
   position:fixed;z-index:60;
   left:50%;transform:translateX(-50%);
   bottom:calc(env(safe-area-inset-bottom,0px) + 24px);
-  display:flex;
-  background:rgba(245,240,230,.94);
-  backdrop-filter:blur(14px);
-  border:1px solid var(--line-2);
-  box-shadow:0 2px 6px rgba(42,36,32,.06), 0 14px 34px -14px rgba(42,36,32,.30);
+  display:flex;gap:3px;padding:4px;
+  border-radius:999px;
+  background:rgba(248,244,235,.55);
+  -webkit-backdrop-filter:blur(20px) saturate(1.5);
+  backdrop-filter:blur(20px) saturate(1.5);
+  border:1px solid rgba(255,255,255,.6);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.7),
+    0 1px 2px rgba(42,36,32,.05),
+    0 12px 30px -12px rgba(42,36,32,.34);
 }
 .dock-b{
   appearance:none;background:none;border:none;cursor:pointer;
-  padding:calc(var(--u)*1.25) calc(var(--u)*3.25);
-  font-family:var(--f-mono);font-size:10.5px;letter-spacing:.22em;
-  color:var(--ink-3);position:relative;transition:color .25s;
+  padding:calc(var(--u)*.875) calc(var(--u)*3);
+  border-radius:999px;
+  font-family:var(--f-title);font-weight:700;font-size:16px;letter-spacing:.12em;
+  line-height:1.4;color:var(--ink-3);
+  transition:color .25s,background .25s,box-shadow .25s;
 }
-.dock-b + .dock-b{border-left:1px solid var(--line)}
-.dock-b[aria-selected="true"]{color:var(--ink)}
-.dock-b[aria-selected="true"]::after{
-  content:"";position:absolute;left:50%;bottom:5px;
-  width:16px;height:2px;background:var(--vermilion);transform:translateX(-50%);
+.dock-b[aria-selected="true"]{
+  color:var(--ink);
+  background:rgba(255,255,255,.78);
+  box-shadow:0 1px 2px rgba(42,36,32,.10);
 }
 .dock-b:focus-visible{outline:1px solid var(--jade);outline-offset:-3px}
 
@@ -968,7 +974,7 @@ const BAG=[
  {t:"出發前一晚",i:[
   "線上報到、存好登機證",
   "手機與行動電源充飽",
-  "民宿地址存離線（신촌로3나길 3）",
+  "民宿地址存離線",
   "護照與現金放隨身包"]}
 ];
 
