@@ -45,7 +45,9 @@
 }
 
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html{-webkit-text-size-adjust:100%}
+/* 關掉「點兩下放大」——連按數字鍵時畫面才不會一直縮放。
+   雙指縮放仍然保留，不影響需要放大看細節的時候。 */
+html{-webkit-text-size-adjust:100%;touch-action:manipulation}
 
 body{
   font-family:var(--f-cjk);font-weight:300;
@@ -374,27 +376,35 @@ body::after{
   text-align:right;padding:calc(var(--u)*2) 0 calc(var(--u)*2);
   border-bottom:1px solid var(--line-2);
 }
+.calc-line{display:flex;align-items:baseline;justify-content:flex-end;gap:calc(var(--u)*1.5)}
+.calc-op{
+  flex:0 0 auto;font-family:var(--f-mono);font-size:22px;line-height:1;
+  color:var(--jade);min-width:14px;text-align:left;
+}
 .calc-krw{
+  flex:0 1 auto;min-width:0;
   font-family:var(--f-disp);font-size:clamp(34px,10vw,46px);line-height:1.05;
   color:var(--ink);word-break:break-all;
 }
 .calc-twd{font-family:var(--f-mono);font-size:13px;letter-spacing:.1em;color:var(--jade);margin-top:calc(var(--u)*1.25)}
 .calc-rate{font-family:var(--f-mono);font-size:8.5px;letter-spacing:.1em;color:var(--ink-3);margin-top:6px}
 .calc-pad{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:calc(var(--u)*3)}
-.k{
+.calc-k{
   appearance:none;-webkit-appearance:none;cursor:pointer;
   border:1px solid var(--line);background:var(--paper-2);
   font-family:var(--f-disp);font-size:23px;color:var(--ink);
   padding:calc(var(--u)*2.25) 0;
   transition:background .18s,border-color .18s;
 }
-.k:active{background:var(--paper-3)}
-.k:focus-visible{outline:1px solid var(--jade);outline-offset:-3px}
-.k.op{font-family:var(--f-mono);font-size:17px;color:var(--jade);background:var(--paper-3)}
-.k.fn{font-family:var(--f-mono);font-size:13px;color:var(--vermilion)}
-.k.eq{background:var(--jade);color:#fff;border-color:var(--jade);font-family:var(--f-mono);font-size:17px}
-.k.wide{grid-column:span 2}
-.k.tall{grid-row:span 2}
+.calc-k:active{background:var(--paper-3)}
+.calc-k:focus-visible{outline:1px solid var(--jade);outline-offset:-3px}
+.calc-k.op{font-family:var(--f-mono);font-size:17px;color:var(--jade);background:var(--paper-3)}
+/* 按下的運算子維持反白，看得出正在等第二個數字 */
+.calc-k.op.on{background:var(--jade);color:#fff;border-color:var(--jade)}
+.calc-k.fn{font-family:var(--f-mono);font-size:13px;color:var(--vermilion)}
+.calc-k.eq{background:var(--jade);color:#fff;border-color:var(--jade);font-family:var(--f-mono);font-size:17px}
+.calc-k.wide{grid-column:span 2}
+.calc-k.tall{grid-row:span 2}
 
 /* ══ 記帳 ══ */
 .log-tot{display:flex;align-items:baseline;gap:calc(var(--u)*1.5);margin-top:calc(var(--u)*2);flex-wrap:wrap}
@@ -613,29 +623,32 @@ body::after{
      <h2>計算機</h2>
    </header>
    <div class="calc-out">
-     <div class="calc-krw" id="calcKrw">0</div>
+     <div class="calc-line">
+       <span class="calc-op" id="calcOp"></span>
+       <span class="calc-krw" id="calcKrw">0</span>
+     </div>
      <div class="calc-twd" id="calcTwd">≈ NT$0</div>
      <div class="calc-rate" id="calcRate">匯率讀取中…</div>
    </div>
    <div class="calc-pad" id="calcPad">
-     <button class="k fn" data-a="clear" type="button">C</button>
-     <button class="k fn" data-a="back" type="button">⌫</button>
-     <button class="k op" data-op="/" type="button">÷</button>
-     <button class="k op" data-op="*" type="button">×</button>
-     <button class="k" data-n="7" type="button">7</button>
-     <button class="k" data-n="8" type="button">8</button>
-     <button class="k" data-n="9" type="button">9</button>
-     <button class="k op" data-op="-" type="button">−</button>
-     <button class="k" data-n="4" type="button">4</button>
-     <button class="k" data-n="5" type="button">5</button>
-     <button class="k" data-n="6" type="button">6</button>
-     <button class="k op" data-op="+" type="button">＋</button>
-     <button class="k" data-n="1" type="button">1</button>
-     <button class="k" data-n="2" type="button">2</button>
-     <button class="k" data-n="3" type="button">3</button>
-     <button class="k eq tall" data-a="eq" type="button">＝</button>
-     <button class="k wide" data-n="0" type="button">0</button>
-     <button class="k" data-n="." type="button">.</button>
+     <button class="calc-k fn" data-a="clear" type="button">C</button>
+     <button class="calc-k fn" data-a="back" type="button">⌫</button>
+     <button class="calc-k op" data-op="/" type="button">÷</button>
+     <button class="calc-k op" data-op="*" type="button">×</button>
+     <button class="calc-k" data-n="7" type="button">7</button>
+     <button class="calc-k" data-n="8" type="button">8</button>
+     <button class="calc-k" data-n="9" type="button">9</button>
+     <button class="calc-k op" data-op="-" type="button">−</button>
+     <button class="calc-k" data-n="4" type="button">4</button>
+     <button class="calc-k" data-n="5" type="button">5</button>
+     <button class="calc-k" data-n="6" type="button">6</button>
+     <button class="calc-k op" data-op="+" type="button">＋</button>
+     <button class="calc-k" data-n="1" type="button">1</button>
+     <button class="calc-k" data-n="2" type="button">2</button>
+     <button class="calc-k" data-n="3" type="button">3</button>
+     <button class="calc-k eq tall" data-a="eq" type="button">＝</button>
+     <button class="calc-k wide" data-n="0" type="button">0</button>
+     <button class="calc-k" data-n="." type="button">.</button>
    </div>
  </section>
 
@@ -1174,13 +1187,17 @@ function fxReady(rate,stamp,stale){
 /* ══ 計算機 ══
    一般計算機的循序運算（不做先乘除後加減），按下運算子就先結算前一段，
    跟實體計算機一致，現場算價格比較不會誤會。 */
-const calcKrwEl=document.getElementById("calcKrw"), calcTwdEl=document.getElementById("calcTwd");
+const calcKrwEl=document.getElementById("calcKrw"), calcTwdEl=document.getElementById("calcTwd"),
+      calcOpEl=document.getElementById("calcOp");
+const OPSYM={"+":"＋","-":"−","*":"×","/":"÷"};
 let cAcc=null, cOp=null, cCur="0", cFresh=true;
 
 function calcShown(){ return parseFloat(cCur)||0; }
 function calcPaint(){
   calcKrwEl.textContent = cCur.length>14 ? cCur.slice(0,14) : cCur;
   calcTwdEl.textContent = twdText(calcShown());
+  calcOpEl.textContent = cOp ? OPSYM[cOp] : "";
+  document.querySelectorAll(".calc-k.op").forEach(b=>b.classList.toggle("on",b.dataset.op===cOp));
 }
 function calcApply(a,op,b){
   if(op==="+") return a+b;
