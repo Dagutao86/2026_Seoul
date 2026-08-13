@@ -269,7 +269,9 @@ body::after{
 .path svg{display:block;margin:0 auto;overflow:visible}
 .path .trail{stroke:var(--line-2);stroke-width:1;stroke-dasharray:3 4;fill:none}
 .path .plane{fill:var(--vermilion)}
-.panel:not([hidden]) .path .plane{animation:fly 5.5s 1.1s cubic-bezier(.5,0,.5,1) infinite}
+/* 動畫掛在外層 g：CSS transform 會蓋掉 SVG 的 transform 屬性，
+   分開兩層才能讓機身的鏡射與縮放跟位移動畫並存 */
+.panel:not([hidden]) .path .pw{animation:fly 5.5s 1.1s cubic-bezier(.5,0,.5,1) infinite}
 
 .perf{
   position:relative;height:1px;margin:0 calc(var(--u)*2.5);
@@ -530,7 +532,7 @@ function boardingPass(key){
         <div class="dur">${f.dur}</div>
         <svg width="46" height="12" viewBox="0 0 46 12">
           <path class="trail" d="M0 6h46"/>
-          <path class="plane" d="M0 6 8.6 1.4l-1.4 4h4.2l1.8-2.4h1.6l-1 2.4h3.4v1.2h-3.4l1 2.4h-1.6l-1.8-2.4H7.2l1.4 4z" transform="translate(-2,0) scale(.82)"/>
+          <g class="pw"><path class="plane" d="M0 6 8.6 1.4l-1.4 4h4.2l1.8-2.4h1.6l-1 2.4h3.4v1.2h-3.4l1 2.4h-1.6l-1.8-2.4H7.2l1.4 4z" transform="translate(12.1,0) scale(-.82,.82)"/></g>
         </svg>
       </div>
       ${pt(f.to,"b")}
