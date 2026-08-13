@@ -343,7 +343,12 @@ body::after{
   display:flex;justify-content:flex-end;align-items:center;
   gap:calc(var(--u)*1.25);flex-wrap:wrap;
 }
-.fc-foot .btn{padding:5px 11px;font-size:9px}
+.fc-foot .btn.ico{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:28px;height:28px;padding:0;color:var(--ink-2);
+}
+.fc-foot .btn.ico svg{display:block;transform-origin:50% 50%}
+.fc-foot .btn.ico.busy svg{animation:spin .9s linear infinite}
 .fc-foot .btn:disabled{opacity:.5;cursor:default}
 .upd-msg{
   font-family:var(--f-mono);font-size:8.5px;letter-spacing:.1em;
@@ -355,6 +360,7 @@ body::after{
 /* ══ MOTION ══ */
 @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 @keyframes slot{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes spin{to{transform:rotate(360deg)}}
 @keyframes fly{
   0%{transform:translateX(0);opacity:0}
   12%{opacity:1}
@@ -401,7 +407,13 @@ body::after{
       <div class="fc-strip" id="fcStrip"></div>
       <div class="fc-foot">
         <span class="upd-msg" id="updMsg"></span>
-        <button class="btn" id="updBtn">檢查更新</button>
+        <button class="btn ico" id="updBtn" type="button" aria-label="檢查更新" title="檢查更新">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="23 4 23 10 17 10"/>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+          </svg>
+        </button>
       </div>
     </div>
   </header>
@@ -755,7 +767,7 @@ select(t>=0?t:0);
 const updBtn=document.getElementById("updBtn"), updMsg=document.getElementById("updMsg");
 
 updBtn.addEventListener("click",async()=>{
-  updBtn.disabled=true;
+  updBtn.disabled=true; updBtn.classList.add("busy");
   updMsg.className="upd-msg"; updMsg.textContent="檢查中…";
 
   try{
@@ -764,7 +776,7 @@ updBtn.addEventListener("click",async()=>{
   }catch(_){
     updMsg.className="upd-msg warn";
     updMsg.textContent="連不上網路，保留現有版本";
-    updBtn.disabled=false;
+    updBtn.disabled=false; updBtn.classList.remove("busy");
     return;
   }
 
