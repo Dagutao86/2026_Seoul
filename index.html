@@ -186,21 +186,24 @@ body::after{
 .phead .stay{font-family:var(--f-mono);font-size:10px;letter-spacing:.16em;color:var(--ink-3);margin-top:calc(var(--u)*1.25)}
 
 /* ══ TIMELINE ══ */
-.tl{list-style:none;position:relative;padding-left:calc(var(--u)*8)}
+/* 左欄配置（以 .tl 左緣為 0）：時間 0–44 ／ 軸線與圓點 52 ／ 卡片 72
+   軸線的 left 相對 .tl 的 padding box，圓點與時間相對已被內距推開的 .ev，
+   基準不同，所以兩邊的數值要各自換算，不能共用同一個 padding 值。 */
+.tl{list-style:none;position:relative;padding-left:72px}
 .tl::before{
-  content:"";position:absolute;left:calc(var(--u)*8 - 1px);top:10px;bottom:22px;width:1px;
+  content:"";position:absolute;left:52px;top:10px;bottom:22px;width:1px;
   background:repeating-linear-gradient(180deg,var(--line-2) 0 4px,transparent 4px 9px);
 }
 .ev{position:relative;padding-bottom:calc(var(--u)*2.5);opacity:0}
 .panel:not([hidden]) .ev{animation:slot .62s cubic-bezier(.2,.7,.3,1) forwards}
 .ev .dot{
-  position:absolute;left:calc(var(--u)*-8 - 3.5px);top:19px;
+  position:absolute;left:-25px;top:19px;
   width:8px;height:8px;border-radius:50%;
   background:var(--paper);border:1px solid var(--line-2);
 }
 .ev.key .dot{background:var(--vermilion);border-color:var(--vermilion);box-shadow:0 0 0 4px rgba(185,60,39,.12)}
 .ev .when{
-  position:absolute;left:calc(var(--u)*-8 - 6px);top:16px;
+  position:absolute;left:-28px;top:16px;
   transform:translateX(-100%);padding-right:calc(var(--u)*1.25);
   font-family:var(--f-mono);font-size:9.5px;letter-spacing:.1em;
   color:var(--ink-3);white-space:nowrap;line-height:1.6;
@@ -399,10 +402,10 @@ body::after{
 }
 
 @media (max-width:400px){
-  .tl{padding-left:calc(var(--u)*7)}
-  .tl::before{left:calc(var(--u)*7 - 1px)}
-  .ev .dot{left:calc(var(--u)*-7 - 3.5px)}
-  .ev .when{left:calc(var(--u)*-7 - 6px)}
+  /* 窄螢幕只收窄「軸線→卡片」的間距，時間欄寬度不能動（字寬固定） */
+  .tl{padding-left:66px}
+  .ev .dot{left:-19px}
+  .ev .when{left:-22px}
   .pt .code{font-size:33px}
   .bp-route{padding:calc(var(--u)*2.5) calc(var(--u)*2)}
 }
