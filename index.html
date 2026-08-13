@@ -316,6 +316,11 @@ body::after{
 .foot dt{font-family:var(--f-mono);font-size:10px;letter-spacing:.2em;color:var(--ink);margin-bottom:4px}
 .foot dd{font-size:12.5px;color:var(--ink-2);line-height:2;margin-bottom:calc(var(--u)*2.5)}
 .colophon{font-family:var(--f-mono);font-size:9.5px;color:var(--ink-3);line-height:2;margin-top:calc(var(--u)*3);letter-spacing:.06em}
+.upd{display:flex;align-items:center;gap:calc(var(--u)*1.5);margin-top:calc(var(--u)*3);flex-wrap:wrap}
+.upd .btn:disabled{opacity:.5;cursor:default}
+.upd-msg{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.14em;color:var(--ink-3)}
+.upd-msg.ok{color:var(--jade)}
+.upd-msg.warn{color:var(--vermilion)}
 
 /* ══ MOTION ══ */
 @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
@@ -379,6 +384,10 @@ body::after{
       <dd>8 月首爾悶熱、紫外線強：防曬、帽子、小風扇、輕便雨具。</dd>
     </dl>
     <p class="colophon">點地點開啟 Naver Map ／ 氣溫為 Open-Meteo 即時資料 ／ 登機門與行李轉盤當天於機場螢幕確認</p>
+    <div class="upd">
+      <button class="btn" id="updBtn">檢查更新</button>
+      <span class="upd-msg" id="updMsg"></span>
+    </div>
   </footer>
 </div>
 
@@ -666,6 +675,41 @@ async function weather(d){
 
 const t=dayIndex();
 select(t>=0?t:0);
+
+/* ══ 手動更新 ══
+   PWA 加到桌面後沒有網址列可以重新整理，這顆按鈕強制抓最新版。
+   順序很重要：先確認連得上網，才清快取——否則離線時按下去會把離線副本清掉又載不回來。 */
+const updBtn=document.getElementById("updBtn"), updMsg=document.getElementById("updMsg");
+
+updBtn.addEventListener("click",async()=>{
+  updBtn.disabled=true;
+  updMsg.className="upd-msg"; updMsg.textContent="檢查中…";
+
+  try{
+    const r=await fetch("./index.html?_="+Date.now(),{cache:"no-store"});
+    if(!r.ok) throw 0;
+  }catch(_){
+    updMsg.className="upd-msg warn";
+    updMsg.textContent="連不上網路，保留現有版本";
+    updBtn.disabled=false;
+    return;
+  }
+
+  try{
+    if("serviceWorker" in navigator){
+      const regs=await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(g=>g.update().catch(()=>{})));
+    }
+    if("caches" in window){
+      const keys=await caches.keys();
+      await Promise.all(keys.map(k=>caches.delete(k)));
+    }
+  }catch(_){}
+
+  updMsg.className="upd-msg ok";
+  updMsg.textContent="重新載入…";
+  location.reload();
+});
 
 /* ══ OFFLINE ══ */
 if("serviceWorker" in navigator && location.protocol==="https:"){
