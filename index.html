@@ -76,6 +76,21 @@ body::after{
 
 /* ══ HERO ══ */
 .hero{padding:calc(var(--u)*7) 0 calc(var(--u)*3)}
+.hero-top{
+  display:flex;justify-content:space-between;align-items:flex-start;
+  gap:calc(var(--u)*1.5);
+}
+.hero-top .eyebrow{flex:1 1 auto;min-width:0;padding-top:3px}
+.upd{
+  flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;gap:5px;
+  opacity:0;animation:rise .8s .05s cubic-bezier(.2,.7,.3,1) forwards;
+}
+.upd .btn{padding:5px 11px;font-size:9px}
+.upd .btn:disabled{opacity:.5;cursor:default}
+.upd-msg{
+  font-family:var(--f-mono);font-size:8.5px;letter-spacing:.1em;
+  color:var(--ink-3);text-align:right;line-height:1.7;max-width:130px;
+}
 .eyebrow{
   font-family:var(--f-mono);font-size:9.5px;letter-spacing:.42em;
   color:var(--jade);text-transform:uppercase;
@@ -316,9 +331,6 @@ body::after{
 .foot dt{font-family:var(--f-mono);font-size:10px;letter-spacing:.2em;color:var(--ink);margin-bottom:4px}
 .foot dd{font-size:12.5px;color:var(--ink-2);line-height:2;margin-bottom:calc(var(--u)*2.5)}
 .colophon{font-family:var(--f-mono);font-size:9.5px;color:var(--ink-3);line-height:2;margin-top:calc(var(--u)*3);letter-spacing:.06em}
-.upd{display:flex;align-items:center;gap:calc(var(--u)*1.5);margin-top:calc(var(--u)*3);flex-wrap:wrap}
-.upd .btn:disabled{opacity:.5;cursor:default}
-.upd-msg{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.14em;color:var(--ink-3)}
 .upd-msg.ok{color:var(--jade)}
 .upd-msg.warn{color:var(--vermilion)}
 
@@ -342,14 +354,20 @@ body::after{
 }
 @media (prefers-reduced-motion:reduce){
   *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
-  .ev,.eyebrow,.hangul,.hero h1,.hero .span,.live{opacity:1!important}
+  .ev,.eyebrow,.hangul,.hero h1,.hero .span,.live,.upd{opacity:1!important}
 }
 </style>
 
 <div class="wrap">
 
   <header class="hero">
-    <div class="eyebrow">Seoul · 7 days 6 nights</div>
+    <div class="hero-top">
+      <div class="eyebrow">Seoul · 7 days 6 nights</div>
+      <div class="upd">
+        <button class="btn" id="updBtn">檢查更新</button>
+        <span class="upd-msg" id="updMsg"></span>
+      </div>
+    </div>
     <div class="hangul">서울<span class="seal"></span></div>
     <h1>首爾七日</h1>
     <div class="span">2026.08.20 — 08.26 ／ GMP IN · ICN OUT</div>
@@ -384,10 +402,6 @@ body::after{
       <dd>8 月首爾悶熱、紫外線強：防曬、帽子、小風扇、輕便雨具。</dd>
     </dl>
     <p class="colophon">點地點開啟 Naver Map ／ 氣溫為 Open-Meteo 即時資料 ／ 登機門與行李轉盤當天於機場螢幕確認</p>
-    <div class="upd">
-      <button class="btn" id="updBtn">檢查更新</button>
-      <span class="upd-msg" id="updMsg"></span>
-    </div>
   </footer>
 </div>
 
