@@ -362,26 +362,81 @@ body::after{
 }
 .fc-foot:empty{display:none}
 
-/* ══ 匯率換算 ══ 無邊框，輸入欄只用一條底線示意 */
-.fx{
-  margin-top:calc(var(--u)*.5);
-  opacity:0;animation:rise .9s .54s cubic-bezier(.2,.7,.3,1) forwards;
+/* ══ 計算機 ══ */
+#viewCalc[hidden],#viewLog[hidden]{display:none}
+.pg-head{padding:calc(var(--u)*7) 0 calc(var(--u)*2)}
+.pg-head h2{
+  font-family:var(--f-title);font-weight:700;
+  font-size:clamp(31px,8.6vw,39px);letter-spacing:.06em;
+  line-height:1.5;margin-top:calc(var(--u)*1);color:var(--ink);
 }
-.fx-row{display:flex;align-items:baseline;gap:calc(var(--u)*.875);flex-wrap:wrap}
-.fx-sym{font-family:var(--f-mono);font-size:8.5px;letter-spacing:.16em;color:var(--jade)}
-.fx-eq{font-family:var(--f-mono);font-size:11px;color:var(--ink-3)}
-.fx-in{
-  font-family:var(--f-disp);font-size:18px;line-height:1.3;color:var(--ink);
-  width:76px;padding:1px 0;text-align:right;
+.calc-out{
+  text-align:right;padding:calc(var(--u)*2) 0 calc(var(--u)*2);
+  border-bottom:1px solid var(--line-2);
+}
+.calc-krw{
+  font-family:var(--f-disp);font-size:clamp(34px,10vw,46px);line-height:1.05;
+  color:var(--ink);word-break:break-all;
+}
+.calc-twd{font-family:var(--f-mono);font-size:13px;letter-spacing:.1em;color:var(--jade);margin-top:calc(var(--u)*1.25)}
+.calc-rate{font-family:var(--f-mono);font-size:8.5px;letter-spacing:.1em;color:var(--ink-3);margin-top:6px}
+.calc-pad{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:calc(var(--u)*3)}
+.k{
+  appearance:none;-webkit-appearance:none;cursor:pointer;
+  border:1px solid var(--line);background:var(--paper-2);
+  font-family:var(--f-disp);font-size:23px;color:var(--ink);
+  padding:calc(var(--u)*2.25) 0;
+  transition:background .18s,border-color .18s;
+}
+.k:active{background:var(--paper-3)}
+.k:focus-visible{outline:1px solid var(--jade);outline-offset:-3px}
+.k.op{font-family:var(--f-mono);font-size:17px;color:var(--jade);background:var(--paper-3)}
+.k.fn{font-family:var(--f-mono);font-size:13px;color:var(--vermilion)}
+.k.eq{background:var(--jade);color:#fff;border-color:var(--jade);font-family:var(--f-mono);font-size:17px}
+.k.wide{grid-column:span 2}
+.k.tall{grid-row:span 2}
+
+/* ══ 記帳 ══ */
+.log-tot{display:flex;align-items:baseline;gap:calc(var(--u)*1.5);margin-top:calc(var(--u)*2);flex-wrap:wrap}
+.log-tot-k{font-family:var(--f-disp);font-size:30px;line-height:1;color:var(--ink)}
+.log-tot-t{font-family:var(--f-mono);font-size:11px;letter-spacing:.12em;color:var(--jade)}
+.log-form{margin-top:calc(var(--u)*3)}
+.log-row1,.log-row2{display:flex;gap:calc(var(--u)*1.25);align-items:center}
+.log-row2{margin-top:calc(var(--u)*1.5)}
+.log-form select,.log-form input{
+  font-family:var(--f-title);font-size:15px;color:var(--ink);
   background:none;border:none;border-bottom:1px solid var(--line-2);
   border-radius:0;-webkit-appearance:none;appearance:none;
+  padding:4px 0;min-width:0;
 }
-.fx-in:focus{outline:none;border-bottom-color:var(--jade)}
-.fx-in:disabled{opacity:.4}
-.fx-in::-webkit-outer-spin-button,.fx-in::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-.fx-rate{
-  font-family:var(--f-mono);font-size:8.5px;letter-spacing:.1em;
-  color:var(--ink-3);margin-top:calc(var(--u)*.875);
+.log-form select{flex:0 0 auto;width:82px;color:var(--ink-2)}
+.log-form #logAmt{flex:1 1 auto;text-align:right;font-family:var(--f-disp);font-size:19px}
+.log-form #logNote{flex:1 1 auto}
+.log-form input:focus,.log-form select:focus{outline:none;border-bottom-color:var(--jade)}
+.log-form input::-webkit-outer-spin-button,.log-form input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.log-form .btn{flex:0 0 auto;padding:6px 14px}
+.log-sec{margin-top:calc(var(--u)*4)}
+.log-h{
+  display:flex;justify-content:space-between;align-items:baseline;
+  padding-bottom:calc(var(--u)*.75);border-bottom:1px solid var(--line-2);
+}
+.log-d{font-family:var(--f-mono);font-size:9px;letter-spacing:.28em;color:var(--gold)}
+.log-sub{font-family:var(--f-mono);font-size:11px;letter-spacing:.08em;color:var(--ink-2)}
+.log-r{
+  display:flex;align-items:baseline;gap:calc(var(--u)*1.25);
+  padding:calc(var(--u)*1.25) 0;border-bottom:1px solid var(--line);
+}
+.log-n{flex:1 1 auto;font-family:var(--f-title);font-size:15px;color:var(--ink-2);word-break:break-word}
+.log-a{flex:0 0 auto;font-family:var(--f-disp);font-size:17px;color:var(--ink)}
+.log-x{
+  flex:0 0 auto;appearance:none;background:none;border:none;cursor:pointer;
+  font-family:var(--f-mono);font-size:14px;line-height:1;color:var(--ink-3);
+  padding:4px 2px 4px 6px;transition:color .2s;
+}
+.log-x:hover,.log-x:active{color:var(--vermilion)}
+.log-empty{
+  font-family:var(--f-mono);font-size:9.5px;letter-spacing:.16em;
+  color:var(--ink-3);margin-top:calc(var(--u)*4);
 }
 .upd-msg{
   font-family:var(--f-mono);font-size:8.5px;letter-spacing:.1em;
@@ -408,10 +463,10 @@ body::after{
 }
 .dock-b{
   appearance:none;background:none;border:none;cursor:pointer;
-  padding:calc(var(--u)*.875) calc(var(--u)*3);
+  padding:calc(var(--u)*.875) calc(var(--u)*1.875);
   border-radius:999px;
-  font-family:var(--f-title);font-weight:700;font-size:16px;letter-spacing:.12em;
-  line-height:1.4;color:var(--ink-3);
+  font-family:var(--f-title);font-weight:700;font-size:15px;letter-spacing:.08em;
+  line-height:1.4;color:var(--ink-3);white-space:nowrap;
   transition:color .25s,background .25s,box-shadow .25s;
 }
 .dock-b[aria-selected="true"]{
@@ -519,16 +574,6 @@ body::after{
       <div class="fc-foot"><span class="upd-msg" id="updMsg"></span></div>
     </div>
 
-    <div class="fx">
-      <div class="fx-row">
-        <span class="fx-sym">KRW</span>
-        <input class="fx-in" id="fxKrw" type="number" inputmode="decimal" placeholder="0" aria-label="韓元金額" disabled>
-        <span class="fx-eq">≈</span>
-        <span class="fx-sym">NT$</span>
-        <input class="fx-in" id="fxTwd" type="number" inputmode="decimal" placeholder="0" aria-label="新台幣金額" disabled>
-      </div>
-      <div class="fx-rate" id="fxRate">匯率讀取中…</div>
-    </div>
   </header>
 
   <nav class="rail" role="tablist" aria-label="選擇日期"></nav>
@@ -562,11 +607,67 @@ body::after{
    <div id="bagList"></div>
  </section>
 
+ <section id="viewCalc" hidden>
+   <header class="pg-head">
+     <div class="eyebrow">Calculator · 韓元計算</div>
+     <h2>計算機</h2>
+   </header>
+   <div class="calc-out">
+     <div class="calc-krw" id="calcKrw">0</div>
+     <div class="calc-twd" id="calcTwd">≈ NT$0</div>
+     <div class="calc-rate" id="calcRate">匯率讀取中…</div>
+   </div>
+   <div class="calc-pad" id="calcPad">
+     <button class="k fn" data-a="clear" type="button">C</button>
+     <button class="k fn" data-a="back" type="button">⌫</button>
+     <button class="k op" data-op="/" type="button">÷</button>
+     <button class="k op" data-op="*" type="button">×</button>
+     <button class="k" data-n="7" type="button">7</button>
+     <button class="k" data-n="8" type="button">8</button>
+     <button class="k" data-n="9" type="button">9</button>
+     <button class="k op" data-op="-" type="button">−</button>
+     <button class="k" data-n="4" type="button">4</button>
+     <button class="k" data-n="5" type="button">5</button>
+     <button class="k" data-n="6" type="button">6</button>
+     <button class="k op" data-op="+" type="button">＋</button>
+     <button class="k" data-n="1" type="button">1</button>
+     <button class="k" data-n="2" type="button">2</button>
+     <button class="k" data-n="3" type="button">3</button>
+     <button class="k eq tall" data-a="eq" type="button">＝</button>
+     <button class="k wide" data-n="0" type="button">0</button>
+     <button class="k" data-n="." type="button">.</button>
+   </div>
+ </section>
+
+ <section id="viewLog" hidden>
+   <header class="pg-head">
+     <div class="eyebrow">Expenses · 分日記帳</div>
+     <h2>記帳</h2>
+     <div class="log-tot">
+       <span class="log-tot-k" id="logSum">₩0</span>
+       <span class="log-tot-t" id="logSumTwd">≈ NT$0</span>
+     </div>
+   </header>
+   <div class="log-form">
+     <div class="log-row1">
+       <select id="logDay" aria-label="第幾天"></select>
+       <input id="logAmt" type="number" inputmode="decimal" placeholder="金額 ₩" aria-label="金額">
+     </div>
+     <div class="log-row2">
+       <input id="logNote" type="text" placeholder="項目（可留空）" aria-label="項目">
+       <button class="btn" id="logAdd" type="button">記一筆</button>
+     </div>
+   </div>
+   <div id="logList"></div>
+ </section>
+
 </div>
 
 <nav class="dock" role="tablist" aria-label="切換頁面">
   <button class="dock-b" id="dockTrip" role="tab" aria-selected="true" type="button">行程</button>
   <button class="dock-b" id="dockBag" role="tab" aria-selected="false" type="button">行李</button>
+  <button class="dock-b" id="dockCalc" role="tab" aria-selected="false" type="button">計算</button>
+  <button class="dock-b" id="dockLog" role="tab" aria-selected="false" type="button">記帳</button>
 </nav>
 
 <script>
@@ -1017,46 +1118,39 @@ bagReset.addEventListener("click",()=>{
 bagTally();
 
 /* ══ 頁面切換 ══ */
-const viewTrip=document.getElementById("viewTrip"), viewBag=document.getElementById("viewBag"),
-      dockTrip=document.getElementById("dockTrip"), dockBag=document.getElementById("dockBag");
-
+const VIEWS={
+  trip:[document.getElementById("viewTrip"),document.getElementById("dockTrip")],
+  bag :[document.getElementById("viewBag"), document.getElementById("dockBag")],
+  calc:[document.getElementById("viewCalc"),document.getElementById("dockCalc")],
+  log :[document.getElementById("viewLog"), document.getElementById("dockLog")]
+};
 function showView(v){
-  const bag=v==="bag";
-  viewTrip.hidden=bag; viewBag.hidden=!bag;
-  dockTrip.setAttribute("aria-selected",String(!bag));
-  dockBag.setAttribute("aria-selected",String(bag));
+  for(const k in VIEWS){
+    const [sec,btn]=VIEWS[k], on=k===v;
+    sec.hidden=!on;
+    btn.setAttribute("aria-selected",String(on));
+  }
   scrollTo(0,0);
 }
-dockTrip.addEventListener("click",()=>showView("trip"));
-dockBag.addEventListener("click",()=>showView("bag"));
+for(const k in VIEWS) VIEWS[k][1].addEventListener("click",()=>showView(k));
 
 /* ══ 匯率換算 ══
    當天匯率優先走網路；抓不到就退回上次存下的，並標示日期，
    人在韓國常常沒訊號，總比整個工具不能用好。 */
-const fxKrw=document.getElementById("fxKrw"),
-      fxTwd=document.getElementById("fxTwd"),
-      fxRate=document.getElementById("fxRate");
 let RATE=null;   /* 1 KRW = RATE TWD */
+const calcRate=document.getElementById("calcRate");
 
-const fxNum=n=>{
-  if(!isFinite(n)) return "";
-  const r=n>=100?Math.round(n):Math.round(n*100)/100;
-  return String(r);
+const nfmt=n=>Math.round(n).toLocaleString("en-US");
+const twdText=krw=>{
+  if(RATE==null) return "匯率未取得";
+  const v=krw*RATE;
+  return "≈ NT$"+(Math.abs(v)>=100?nfmt(v):(Math.round(v*100)/100));
 };
-function fxCalc(from,to,mul){
-  if(RATE==null) return;
-  const v=parseFloat(from.value);
-  if(from.value===""||!isFinite(v)){ to.value=""; return; }
-  to.value=fxNum(v*mul);
-}
-fxKrw.addEventListener("input",()=>fxCalc(fxKrw,fxTwd,RATE));
-fxTwd.addEventListener("input",()=>fxCalc(fxTwd,fxKrw,1/RATE));
 
 function fxReady(rate,stamp,stale){
   RATE=rate;
-  fxKrw.disabled=fxTwd.disabled=false;
-  fxRate.textContent=`₩1,000 ≈ NT$${(rate*1000).toFixed(1)}　${stale?"上次更新 ":""}${stamp}`;
-  fxKrw.value="10000"; fxCalc(fxKrw,fxTwd,RATE);
+  calcRate.textContent=`₩1,000 ≈ NT$${(rate*1000).toFixed(1)}　${stale?"上次更新 ":""}${stamp}`;
+  calcPaint(); logRender();
 }
 
 (async()=>{
@@ -1073,9 +1167,113 @@ function fxReady(rate,stamp,stale){
     fxReady(rate,stamp,false);
   }catch(_){
     if(saved&&saved.rate) fxReady(saved.rate,saved.stamp||"",true);
-    else fxRate.textContent="匯率無法取得";
+    else calcRate.textContent="匯率無法取得，換算暫停";
   }
 })();
+
+/* ══ 計算機 ══
+   一般計算機的循序運算（不做先乘除後加減），按下運算子就先結算前一段，
+   跟實體計算機一致，現場算價格比較不會誤會。 */
+const calcKrwEl=document.getElementById("calcKrw"), calcTwdEl=document.getElementById("calcTwd");
+let cAcc=null, cOp=null, cCur="0", cFresh=true;
+
+function calcShown(){ return parseFloat(cCur)||0; }
+function calcPaint(){
+  calcKrwEl.textContent = cCur.length>14 ? cCur.slice(0,14) : cCur;
+  calcTwdEl.textContent = twdText(calcShown());
+}
+function calcApply(a,op,b){
+  if(op==="+") return a+b;
+  if(op==="-") return a-b;
+  if(op==="*") return a*b;
+  if(op==="/") return b===0?0:a/b;
+  return b;
+}
+function calcTidy(n){
+  if(!isFinite(n)) return "0";
+  const r=Math.round(n*100)/100;
+  return String(r);
+}
+
+document.getElementById("calcPad").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b) return;
+
+  if(b.dataset.n!=null){
+    const n=b.dataset.n;
+    if(cFresh){ cCur = n==="." ? "0." : n; cFresh=false; }
+    else if(n==="."){ if(!cCur.includes(".")) cCur+="."; }
+    else cCur = cCur==="0" ? n : cCur+n;
+    calcPaint(); return;
+  }
+  if(b.dataset.op){
+    const v=calcShown();
+    cAcc = (cAcc==null||cOp==null) ? v : calcApply(cAcc,cOp,v);
+    cOp=b.dataset.op; cCur=calcTidy(cAcc); cFresh=true;
+    calcPaint(); return;
+  }
+  const a=b.dataset.a;
+  if(a==="clear"){ cAcc=null; cOp=null; cCur="0"; cFresh=true; calcPaint(); return; }
+  if(a==="back"){
+    if(cFresh){ cCur="0"; }
+    else { cCur=cCur.slice(0,-1); if(cCur===""||cCur==="-") cCur="0"; }
+    calcPaint(); return;
+  }
+  if(a==="eq"){
+    if(cOp!=null&&cAcc!=null){ cCur=calcTidy(calcApply(cAcc,cOp,calcShown())); cAcc=null; cOp=null; }
+    cFresh=true; calcPaint();
+  }
+});
+calcPaint();
+
+/* ══ 記帳 ══ 依天數分組，存 localStorage */
+const logDay=document.getElementById("logDay"), logAmt=document.getElementById("logAmt"),
+      logNote=document.getElementById("logNote"), logAdd=document.getElementById("logAdd"),
+      logList=document.getElementById("logList"), logSum=document.getElementById("logSum"),
+      logSumTwd=document.getElementById("logSumTwd");
+
+let logs=(()=>{ try{ return JSON.parse(localStorage.getItem("expenses")||"[]"); }catch(_){ return []; } })();
+const logSave=()=>{ try{ localStorage.setItem("expenses",JSON.stringify(logs)); }catch(_){} };
+
+logDay.innerHTML=DAYS.map(d=>`<option value="${d.n}">Day ${d.n} · ${esc(d.date)}</option>`).join("");
+logDay.value=String(DAYS[Math.max(dayIndex(),0)].n);
+
+function logRender(){
+  const by={};
+  logs.forEach((e,i)=>{ (by[e.d]=by[e.d]||[]).push({...e,i}); });
+  let total=0;
+  const html=DAYS.map(d=>{
+    const items=by[d.n]; if(!items||!items.length) return "";
+    const sub=items.reduce((s,x)=>s+x.a,0); total+=sub;
+    return `<section class="log-sec">
+      <div class="log-h"><span class="log-d">DAY ${d.n} · ${esc(d.date)}</span><span class="log-sub">₩${nfmt(sub)}</span></div>
+      ${items.map(x=>`<div class="log-r">
+        <span class="log-n">${esc(x.n||"—")}</span>
+        <span class="log-a">₩${nfmt(x.a)}</span>
+        <button class="log-x" data-i="${x.i}" type="button" aria-label="刪除這筆">×</button>
+      </div>`).join("")}
+    </section>`;
+  }).join("");
+  logList.innerHTML = html || '<div class="log-empty">還沒有紀錄</div>';
+  logSum.textContent="₩"+nfmt(total);
+  logSumTwd.textContent = RATE==null ? "" : twdText(total);
+}
+
+logAdd.addEventListener("click",()=>{
+  const a=parseFloat(logAmt.value);
+  if(!isFinite(a)||a<=0){ logAmt.focus(); return; }
+  logs.push({d:+logDay.value,a:Math.round(a),n:logNote.value.trim()});
+  logSave(); logRender();
+  logAmt.value=""; logNote.value=""; logAmt.focus();
+});
+logAmt.addEventListener("keydown",e=>{ if(e.key==="Enter") logAdd.click(); });
+logNote.addEventListener("keydown",e=>{ if(e.key==="Enter") logAdd.click(); });
+
+logList.addEventListener("click",e=>{
+  const x=e.target.closest(".log-x"); if(!x) return;
+  logs.splice(+x.dataset.i,1); logSave(); logRender();
+});
+
+logRender();
 
 /* ══ 手動更新 ══
    PWA 加到桌面後沒有網址列可以重新整理，這顆按鈕強制抓最新版。
