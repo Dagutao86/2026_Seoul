@@ -106,6 +106,7 @@ body::after{
 }
 
 .live{
+  position:relative;
   margin-top:calc(var(--u)*4);border:1px solid var(--line);
   background:var(--paper-2);
   box-shadow:0 1px 2px rgba(42,36,32,.04), 0 10px 30px -12px rgba(42,36,32,.10);
@@ -114,10 +115,23 @@ body::after{
 }
 .live .l{padding:calc(var(--u)*2.25) calc(var(--u)*2.5);min-width:0}
 .live .r{
-  padding:calc(var(--u)*2.25) calc(var(--u)*2.5);
+  padding:calc(var(--u)*2.25) calc(var(--u)*2.5) calc(var(--u)*3.5);
   border-left:1px solid var(--line);text-align:right;min-width:118px;
   background:var(--paper-3);
 }
+/* 去背小圖示，釘在整張卡片的右下角 */
+.upd-btn{
+  position:absolute;right:calc(var(--u)*.75);bottom:calc(var(--u)*.5);
+  width:22px;height:22px;padding:0;
+  display:inline-flex;align-items:center;justify-content:center;
+  background:none;border:none;cursor:pointer;
+  color:var(--ink-3);transition:color .25s;
+}
+.upd-btn svg{display:block;transform-origin:50% 50%}
+.upd-btn:hover,.upd-btn:active{color:var(--vermilion)}
+.upd-btn:disabled{opacity:.45;cursor:default}
+.upd-btn.busy svg{animation:spin .9s linear infinite}
+.upd-btn:focus-visible{outline:1px solid var(--jade);outline-offset:2px}
 .live .k{font-family:var(--f-mono);font-size:9px;letter-spacing:.3em;color:var(--jade)}
 .live .day{font-family:var(--f-disp);font-size:27px;line-height:1.15;margin-top:6px;color:var(--ink)}
 .live .day em{font-style:normal;color:var(--ink-3);font-size:16px}
@@ -343,13 +357,7 @@ body::after{
   display:flex;justify-content:flex-end;align-items:center;
   gap:calc(var(--u)*1.25);flex-wrap:wrap;
 }
-.fc-foot .btn.ico{
-  display:inline-flex;align-items:center;justify-content:center;
-  width:28px;height:28px;padding:0;color:var(--ink-2);
-}
-.fc-foot .btn.ico svg{display:block;transform-origin:50% 50%}
-.fc-foot .btn.ico.busy svg{animation:spin .9s linear infinite}
-.fc-foot .btn:disabled{opacity:.5;cursor:default}
+.fc-foot:empty{display:none}
 .upd-msg{
   font-family:var(--f-mono);font-size:8.5px;letter-spacing:.1em;
   color:var(--ink-3);text-align:right;line-height:1.7;
@@ -401,20 +409,18 @@ body::after{
         <div class="sky"></div>
         <div class="range"></div>
       </div>
+      <button class="upd-btn" id="updBtn" type="button" aria-label="檢查更新" title="檢查更新">
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor"
+             stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="23 4 23 10 17 10"/>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+        </svg>
+      </button>
     </div>
 
     <div class="fc">
       <div class="fc-strip" id="fcStrip"></div>
-      <div class="fc-foot">
-        <span class="upd-msg" id="updMsg"></span>
-        <button class="btn ico" id="updBtn" type="button" aria-label="檢查更新" title="檢查更新">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
-               stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <polyline points="23 4 23 10 17 10"/>
-            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-          </svg>
-        </button>
-      </div>
+      <div class="fc-foot"><span class="upd-msg" id="updMsg"></span></div>
     </div>
   </header>
 
