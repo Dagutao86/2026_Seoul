@@ -428,6 +428,32 @@ body::after{
 .log-form input::-webkit-outer-spin-button,.log-form input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .log-form .btn{flex:0 0 auto;padding:6px 16px}
 
+/* 記帳內建小算盤 */
+.mini-t{
+  flex:0 0 auto;appearance:none;cursor:pointer;
+  border:1px solid var(--line-2);background:var(--paper-3);
+  font-family:var(--f-title);font-weight:700;font-size:14px;line-height:1;
+  color:var(--ink-2);padding:7px 10px;transition:background .2s,color .2s,border-color .2s;
+}
+.mini-t[aria-expanded="true"]{background:var(--jade);color:#fff;border-color:var(--jade)}
+.mini-t:focus-visible{outline:1px solid var(--jade);outline-offset:2px}
+.mini{margin-top:calc(var(--u)*2)}
+.mini[hidden]{display:none}
+.mini-bar{
+  display:flex;align-items:center;gap:calc(var(--u)*1.25);
+  margin-bottom:calc(var(--u)*1.25);
+}
+.mini-op{flex:0 0 auto;font-family:var(--f-mono);font-size:16px;color:var(--jade);min-width:12px}
+.mini-tw{
+  flex:1 1 auto;font-family:var(--f-mono);font-size:9.5px;letter-spacing:.1em;
+  color:var(--ink-3);text-align:right;
+}
+.mini-bar .btn{flex:0 0 auto;padding:5px 12px}
+.mini-pad{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.mini-pad .calc-k{padding:calc(var(--u)*1.625) 0;font-size:19px}
+.mini-pad .calc-k.op,.mini-pad .calc-k.eq{font-size:15px}
+.mini-pad .calc-k.fn{font-size:12px}
+
 .log-tabs{display:flex;gap:calc(var(--u)*2.5);margin-top:calc(var(--u)*4)}
 .log-tab{
   appearance:none;background:none;border:none;cursor:pointer;padding:0 0 5px;
@@ -706,6 +732,34 @@ body::after{
          <option value="TWD">台幣</option>
        </select>
        <input id="logAmt" type="number" inputmode="decimal" placeholder="金額" aria-label="金額">
+       <button class="mini-t" id="miniOpen" type="button" aria-expanded="false" aria-controls="mini" aria-label="開啟小算盤">計</button>
+     </div>
+     <div class="mini" id="mini" hidden>
+       <div class="mini-bar">
+         <span class="mini-op" id="miniOp"></span>
+         <span class="mini-tw" id="miniTw"></span>
+         <button class="btn" id="miniDone" type="button">完成</button>
+       </div>
+       <div class="mini-pad" id="miniPad">
+         <button class="calc-k fn" data-a="clear" type="button">C</button>
+         <button class="calc-k fn" data-a="back" type="button">⌫</button>
+         <button class="calc-k op" data-op="/" type="button">÷</button>
+         <button class="calc-k op" data-op="*" type="button">×</button>
+         <button class="calc-k" data-n="7" type="button">7</button>
+         <button class="calc-k" data-n="8" type="button">8</button>
+         <button class="calc-k" data-n="9" type="button">9</button>
+         <button class="calc-k op" data-op="-" type="button">−</button>
+         <button class="calc-k" data-n="4" type="button">4</button>
+         <button class="calc-k" data-n="5" type="button">5</button>
+         <button class="calc-k" data-n="6" type="button">6</button>
+         <button class="calc-k op" data-op="+" type="button">＋</button>
+         <button class="calc-k" data-n="1" type="button">1</button>
+         <button class="calc-k" data-n="2" type="button">2</button>
+         <button class="calc-k" data-n="3" type="button">3</button>
+         <button class="calc-k eq tall" data-a="eq" type="button">＝</button>
+         <button class="calc-k wide" data-n="0" type="button">0</button>
+         <button class="calc-k" data-n="." type="button">.</button>
+       </div>
      </div>
      <div class="log-row">
        <input id="logNote" type="text" placeholder="項目（可留空）" aria-label="項目">
@@ -1232,59 +1286,56 @@ function fxReady(rate,stamp,stale){
 /* ══ 計算機 ══
    一般計算機的循序運算（不做先乘除後加減），按下運算子就先結算前一段，
    跟實體計算機一致，現場算價格比較不會誤會。 */
-const calcKrwEl=document.getElementById("calcKrw"), calcTwdEl=document.getElementById("calcTwd"),
-      calcOpEl=document.getElementById("calcOp");
 const OPSYM={"+":"＋","-":"−","*":"×","/":"÷"};
-let cAcc=null, cOp=null, cCur="0", cFresh=true;
 
-function calcShown(){ return parseFloat(cCur)||0; }
+/* 可開多份實例：計算機分頁一份，記帳的小算盤一份，兩邊互不干擾 */
+function calcEngine(){
+  let acc=null, op=null, cur="0", fresh=true;
+  const apply=(a,o,b)=>
+    o==="+"?a+b : o==="-"?a-b : o==="*"?a*b : o==="/"?(b===0?0:a/b) : b;
+  const tidy=n=>isFinite(n)?String(Math.round(n*100)/100):"0";
+  const shown=()=>parseFloat(cur)||0;
+  return {
+    cur:()=>cur, op:()=>op, shown,
+    num(n){
+      if(fresh){ cur = n==="." ? "0." : n; fresh=false; }
+      else if(n==="."){ if(!cur.includes(".")) cur+="."; }
+      else cur = cur==="0" ? n : cur+n;
+    },
+    setOp(o){ const v=shown(); acc=(acc==null||op==null)?v:apply(acc,op,v); op=o; cur=tidy(acc); fresh=true; },
+    eq(){ if(op!=null&&acc!=null){ cur=tidy(apply(acc,op,shown())); acc=null; op=null; } fresh=true; },
+    back(){ if(fresh){ cur="0"; } else { cur=cur.slice(0,-1); if(cur===""||cur==="-") cur="0"; } },
+    clear(){ acc=null; op=null; cur="0"; fresh=true; },
+    load(v){ acc=null; op=null; cur=(v==null||v==="")?"0":String(v); fresh=true; }
+  };
+}
+
+/* 把一組按鍵接到某個引擎上，按完呼叫 onChange */
+function bindPad(padEl,eng,onChange){
+  padEl.addEventListener("click",e=>{
+    const b=e.target.closest("button"); if(!b) return;
+    if(b.dataset.n!=null) eng.num(b.dataset.n);
+    else if(b.dataset.op) eng.setOp(b.dataset.op);
+    else if(b.dataset.a==="clear") eng.clear();
+    else if(b.dataset.a==="back") eng.back();
+    else if(b.dataset.a==="eq") eng.eq();
+    else return;
+    onChange();
+  });
+}
+
+const calcKrwEl=document.getElementById("calcKrw"), calcTwdEl=document.getElementById("calcTwd"),
+      calcOpEl=document.getElementById("calcOp"), calcPadEl=document.getElementById("calcPad");
+const cEng=calcEngine();
+
 function calcPaint(){
-  calcKrwEl.textContent = cCur.length>14 ? cCur.slice(0,14) : cCur;
-  calcTwdEl.textContent = twdText(calcShown());
-  calcOpEl.textContent = cOp ? OPSYM[cOp] : "";
-  document.querySelectorAll(".calc-k.op").forEach(b=>b.classList.toggle("on",b.dataset.op===cOp));
+  const cur=cEng.cur();
+  calcKrwEl.textContent = cur.length>14 ? cur.slice(0,14) : cur;
+  calcTwdEl.textContent = twdText(cEng.shown());
+  calcOpEl.textContent = cEng.op() ? OPSYM[cEng.op()] : "";
+  calcPadEl.querySelectorAll(".calc-k.op").forEach(b=>b.classList.toggle("on",b.dataset.op===cEng.op()));
 }
-function calcApply(a,op,b){
-  if(op==="+") return a+b;
-  if(op==="-") return a-b;
-  if(op==="*") return a*b;
-  if(op==="/") return b===0?0:a/b;
-  return b;
-}
-function calcTidy(n){
-  if(!isFinite(n)) return "0";
-  const r=Math.round(n*100)/100;
-  return String(r);
-}
-
-document.getElementById("calcPad").addEventListener("click",e=>{
-  const b=e.target.closest("button"); if(!b) return;
-
-  if(b.dataset.n!=null){
-    const n=b.dataset.n;
-    if(cFresh){ cCur = n==="." ? "0." : n; cFresh=false; }
-    else if(n==="."){ if(!cCur.includes(".")) cCur+="."; }
-    else cCur = cCur==="0" ? n : cCur+n;
-    calcPaint(); return;
-  }
-  if(b.dataset.op){
-    const v=calcShown();
-    cAcc = (cAcc==null||cOp==null) ? v : calcApply(cAcc,cOp,v);
-    cOp=b.dataset.op; cCur=calcTidy(cAcc); cFresh=true;
-    calcPaint(); return;
-  }
-  const a=b.dataset.a;
-  if(a==="clear"){ cAcc=null; cOp=null; cCur="0"; cFresh=true; calcPaint(); return; }
-  if(a==="back"){
-    if(cFresh){ cCur="0"; }
-    else { cCur=cCur.slice(0,-1); if(cCur===""||cCur==="-") cCur="0"; }
-    calcPaint(); return;
-  }
-  if(a==="eq"){
-    if(cOp!=null&&cAcc!=null){ cCur=calcTidy(calcApply(cAcc,cOp,calcShown())); cAcc=null; cOp=null; }
-    cFresh=true; calcPaint();
-  }
-});
+bindPad(calcPadEl,cEng,calcPaint);
 calcPaint();
 
 /* ══ 記帳 ══ 依天數分組，存 localStorage */
@@ -1371,6 +1422,30 @@ function logRender(){
 tabDay.addEventListener("click",()=>{ logMode="day"; logRender(); });
 tabCat.addEventListener("click",()=>{ logMode="cat"; logRender(); });
 
+/* 小算盤：直接把結果寫進金額欄，不用切到計算機分頁 */
+const mini=document.getElementById("mini"), miniOpen=document.getElementById("miniOpen"),
+      miniOp=document.getElementById("miniOp"), miniTw=document.getElementById("miniTw"),
+      miniDone=document.getElementById("miniDone"), miniPad=document.getElementById("miniPad");
+const mEng=calcEngine();
+
+function miniPaint(){
+  logAmt.value=mEng.cur();
+  miniOp.textContent=mEng.op()?OPSYM[mEng.op()]:"";
+  miniPad.querySelectorAll(".calc-k.op").forEach(b=>b.classList.toggle("on",b.dataset.op===mEng.op()));
+  const v=mEng.shown();
+  miniTw.textContent = (RATE==null||!v) ? ""
+    : logCur.value==="TWD" ? "≈ ₩"+nfmt(v/RATE) : "≈ NT$"+nfmt(v*RATE);
+}
+function miniToggle(on){
+  mini.hidden=!on;
+  miniOpen.setAttribute("aria-expanded",String(on));
+  if(on){ mEng.load(logAmt.value); miniPaint(); }
+}
+miniOpen.addEventListener("click",()=>miniToggle(mini.hidden));
+miniDone.addEventListener("click",()=>{ mEng.eq(); miniPaint(); miniToggle(false); });
+logCur.addEventListener("change",()=>{ if(!mini.hidden) miniPaint(); });
+bindPad(miniPad,mEng,miniPaint);
+
 logAdd.addEventListener("click",()=>{
   const a=parseFloat(logAmt.value);
   if(!isFinite(a)||a<=0){ logAmt.focus(); return; }
@@ -1385,7 +1460,8 @@ logAdd.addEventListener("click",()=>{
 
   logs.push(rec);
   logSave(); logRender();
-  logAmt.value=""; logNote.value=""; logAmt.focus();
+  logAmt.value=""; logNote.value="";
+  mEng.clear(); miniToggle(false);
 });
 logAmt.addEventListener("keydown",e=>{ if(e.key==="Enter") logAdd.click(); });
 logNote.addEventListener("keydown",e=>{ if(e.key==="Enter") logAdd.click(); });
