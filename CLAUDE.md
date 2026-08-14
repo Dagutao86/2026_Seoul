@@ -50,7 +50,7 @@
 
 ## 重要規則：改動後一定要做的事
 
-1. **改完 `index.html` 就把 `sw.js` 的 `VERSION` 加一**（`seoul-v38` → `seoul-v39`）。沒加的話手機會卡在舊版。這是最容易漏、也最重要的一步
+1. **改完 `index.html` 就把 `sw.js` 的 `VERSION` 尾碼數字加一**（格式 `seoul-vN`，直接看檔案現值再 +1）。沒加的話手機會卡在舊版。這是最容易漏、也最重要的一步
 2. 直接 commit 並 push 到 `main`（個人小工具，不開 PR）
 3. commit message 用簡短中文
 4. push 完提醒一句：手機上按天氣卡右下角的更新圖示，或離開 app 重開
