@@ -411,7 +411,8 @@ body::after{
 .log-tot-k{font-family:var(--f-disp);font-size:30px;line-height:1;color:var(--ink)}
 .log-tot-t{font-family:var(--f-mono);font-size:11px;letter-spacing:.12em;color:var(--jade)}
 .log-form{margin-top:calc(var(--u)*3)}
-.log-row{display:flex;gap:calc(var(--u)*1.5);align-items:center}
+/* flex-end：按鈕比輸入框高，靠下對齊才能讓按鈕底框與輸入框底線切齊 */
+.log-row{display:flex;gap:calc(var(--u)*1.5);align-items:flex-end}
 .log-row+.log-row{margin-top:calc(var(--u)*1.75)}
 .log-btn-row{justify-content:flex-end}
 .log-form select,.log-form input{
@@ -426,7 +427,10 @@ body::after{
 .log-form #logAmt::placeholder{font-family:var(--f-title);color:var(--ink-3)}
 .log-form input:focus,.log-form select:focus{outline:none;border-bottom-color:var(--jade)}
 .log-form input::-webkit-outer-spin-button,.log-form input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-.log-form .btn{flex:0 0 auto;padding:6px 16px}
+.log-form .btn{
+  flex:0 0 auto;padding:5px 15px;
+  font-family:var(--f-title);font-weight:700;font-size:14px;letter-spacing:.08em;
+}
 
 /* 記帳內建小算盤 */
 .mini-t{
