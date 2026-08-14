@@ -421,7 +421,9 @@ body::after{
   padding:4px 0;min-width:0;flex:1 1 0;
 }
 .log-form select{color:var(--ink-2)}
-.log-form #logAmt{text-align:right;font-family:var(--f-disp);font-size:19px}
+.log-form #logCur{flex:0 0 auto;width:60px}
+.log-form #logAmt{text-align:right;font-size:17px}
+.log-form #logAmt::placeholder{font-family:var(--f-title);color:var(--ink-3)}
 .log-form input:focus,.log-form select:focus{outline:none;border-bottom-color:var(--jade)}
 .log-form input::-webkit-outer-spin-button,.log-form input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .log-form .btn{flex:0 0 auto;padding:6px 16px}
@@ -465,6 +467,10 @@ body::after{
   padding:calc(var(--u)*1.25) 0;border-bottom:1px solid var(--line);
 }
 .log-n{flex:1 1 auto;font-family:var(--f-title);font-size:15px;color:var(--ink-2);word-break:break-word}
+.log-o{
+  display:block;font-family:var(--f-mono);font-size:8px;font-style:normal;
+  letter-spacing:.08em;color:var(--ink-3);margin-top:3px;
+}
 .log-a{flex:0 0 auto;font-family:var(--f-disp);font-size:17px;color:var(--ink)}
 .log-x{
   flex:0 0 auto;appearance:none;background:none;border:none;cursor:pointer;
@@ -695,10 +701,14 @@ body::after{
        <select id="logCat" aria-label="分類"></select>
      </div>
      <div class="log-row">
-       <input id="logAmt" type="number" inputmode="decimal" placeholder="金額 ₩" aria-label="金額">
-       <input id="logNote" type="text" placeholder="項目（可留空）" aria-label="項目">
+       <select id="logCur" aria-label="幣別">
+         <option value="KRW">韓元</option>
+         <option value="TWD">台幣</option>
+       </select>
+       <input id="logAmt" type="number" inputmode="decimal" placeholder="金額" aria-label="金額">
      </div>
-     <div class="log-row log-btn-row">
+     <div class="log-row">
+       <input id="logNote" type="text" placeholder="項目（可留空）" aria-label="項目">
        <button class="btn" id="logAdd" type="button">記一筆</button>
      </div>
    </div>
@@ -1281,17 +1291,21 @@ calcPaint();
 const CATS=["餐飲","衣服","超商","藥局","Olive Young","交通","娛樂","住宿","其他"];
 
 const logDay=document.getElementById("logDay"), logCat=document.getElementById("logCat"),
-      logAmt=document.getElementById("logAmt"), logNote=document.getElementById("logNote"),
-      logAdd=document.getElementById("logAdd"), logList=document.getElementById("logList"),
-      logSum=document.getElementById("logSum"), logSumTwd=document.getElementById("logSumTwd"),
+      logCur=document.getElementById("logCur"), logAmt=document.getElementById("logAmt"),
+      logNote=document.getElementById("logNote"), logAdd=document.getElementById("logAdd"),
+      logList=document.getElementById("logList"), logSum=document.getElementById("logSum"),
+      logSumTwd=document.getElementById("logSumTwd"),
       tabDay=document.getElementById("tabDay"), tabCat=document.getElementById("tabCat");
 
 let logs=(()=>{ try{ return JSON.parse(localStorage.getItem("expenses")||"[]"); }catch(_){ return []; } })();
 const logSave=()=>{ try{ localStorage.setItem("expenses",JSON.stringify(logs)); }catch(_){} };
 let logMode="day";
 
-logDay.innerHTML=DAYS.map(d=>`<option value="${d.n}">Day ${d.n} · ${esc(d.date)}</option>`).join("");
-logDay.value=String(DAYS[Math.max(dayIndex(),0)].n);
+/* Day 0 收行前花費（機票、接送、行前採買） */
+const LOG_DAYS=[{n:0,date:"行前"}].concat(DAYS.map(d=>({n:d.n,date:d.date})));
+
+logDay.innerHTML=LOG_DAYS.map(d=>`<option value="${d.n}">Day ${d.n} · ${esc(d.date)}</option>`).join("");
+logDay.value=String(dayIndex()<0?0:DAYS[dayIndex()].n);
 logCat.innerHTML=CATS.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("");
 
 /* 舊資料沒有分類欄位，一律歸到「其他」 */
@@ -1300,14 +1314,14 @@ const catOf=e=>CATS.includes(e.c)?e.c:"其他";
 function viewByDay(){
   const by={};
   logs.forEach((e,i)=>{ (by[e.d]=by[e.d]||[]).push({...e,i}); });
-  return DAYS.map(d=>{
+  return LOG_DAYS.map(d=>{
     const items=by[d.n]; if(!items||!items.length) return "";
     const sub=items.reduce((s,x)=>s+x.a,0);
     return `<section class="log-sec">
       <div class="log-h"><span class="log-d">DAY ${d.n} · ${esc(d.date)}</span><span class="log-sub">₩${nfmt(sub)}</span></div>
       ${items.map(x=>`<div class="log-r">
         <span class="log-c">${esc(catOf(x))}</span>
-        <span class="log-n">${esc(x.n||"—")}</span>
+        <span class="log-n">${esc(x.n||"—")}${x.nt?`<em class="log-o">輸入 NT$${nfmt(x.nt)}</em>`:""}</span>
         <span class="log-a">₩${nfmt(x.a)}</span>
         <button class="log-x" data-i="${x.i}" type="button" aria-label="刪除這筆">×</button>
       </div>`).join("")}
@@ -1345,6 +1359,13 @@ function logRender(){
   logSumTwd.textContent = RATE==null ? "" : twdText(total);
   tabDay.setAttribute("aria-selected",String(logMode!=="cat"));
   tabCat.setAttribute("aria-selected",String(logMode==="cat"));
+  /* 沒有匯率就無法換算，台幣選項先鎖住免得記錯帳 */
+  const twdOpt=logCur.querySelector('option[value="TWD"]');
+  if(twdOpt){
+    twdOpt.disabled = RATE==null;
+    twdOpt.textContent = RATE==null ? "台幣（無匯率）" : "台幣";
+    if(RATE==null && logCur.value==="TWD") logCur.value="KRW";
+  }
 }
 
 tabDay.addEventListener("click",()=>{ logMode="day"; logRender(); });
@@ -1353,7 +1374,16 @@ tabCat.addEventListener("click",()=>{ logMode="cat"; logRender(); });
 logAdd.addEventListener("click",()=>{
   const a=parseFloat(logAmt.value);
   if(!isFinite(a)||a<=0){ logAmt.focus(); return; }
-  logs.push({d:+logDay.value,c:logCat.value,a:Math.round(a),n:logNote.value.trim()});
+
+  /* 一律換算成韓元入帳，統計才有共同基準；
+     台幣輸入時用當下匯率換，並把原始金額留著顯示。 */
+  const rec={d:+logDay.value,c:logCat.value,n:logNote.value.trim()};
+  if(logCur.value==="TWD"){
+    if(RATE==null){ logCur.focus(); return; }
+    rec.a=Math.round(a/RATE); rec.nt=Math.round(a);
+  } else rec.a=Math.round(a);
+
+  logs.push(rec);
   logSave(); logRender();
   logAmt.value=""; logNote.value=""; logAmt.focus();
 });
