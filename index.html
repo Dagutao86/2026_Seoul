@@ -470,9 +470,9 @@ body::after{
 .log-tab:focus-visible{outline:1px solid var(--jade);outline-offset:2px}
 
 .log-c{
-  flex:0 0 auto;font-family:var(--f-mono);font-size:8px;letter-spacing:.1em;
-  color:var(--jade);border:1px solid var(--line-2);background:var(--paper-3);
-  padding:2px 5px;white-space:nowrap;
+  flex:0 0 auto;font-family:var(--f-title);font-weight:700;font-size:12px;letter-spacing:.06em;
+  line-height:1.25;color:var(--jade);border:1px solid var(--line-2);background:var(--paper-3);
+  padding:2px 6px;white-space:nowrap;
 }
 
 /* 分類統計 */
@@ -497,19 +497,28 @@ body::after{
 .log-r{
   display:flex;align-items:baseline;gap:calc(var(--u)*1.25);
   padding:calc(var(--u)*1.25) 0;border-bottom:1px solid var(--line);
+  overflow:hidden;
+  /* 直向留給捲動、橫向交給滑動手勢；不鎖選取的話瀏覽器會判定成選字並中斷手勢 */
+  touch-action:pan-y;-webkit-user-select:none;user-select:none;
 }
+/* 右滑才展開刪除鍵：用寬度把內容往右推，不做絕對定位疊層，
+   就不必幫每一列補不透明底色去遮住按鈕 */
+.log-del{
+  flex:0 0 auto;width:0;padding:0;margin:0;overflow:hidden;
+  appearance:none;border:none;cursor:pointer;
+  background:var(--vermilion);color:#fff;
+  font-family:var(--f-title);font-weight:700;font-size:13px;line-height:1;
+  white-space:nowrap;align-self:stretch;
+  transition:width .2s cubic-bezier(.2,.7,.3,1),margin .2s cubic-bezier(.2,.7,.3,1);
+}
+.log-r.open .log-del{width:56px;margin-right:calc(var(--u)*1.25)}
+.log-del:focus-visible{outline:1px solid var(--jade);outline-offset:-3px}
 .log-n{flex:1 1 auto;font-family:var(--f-title);font-size:15px;color:var(--ink-2);word-break:break-word}
 .log-o{
   display:block;font-family:var(--f-mono);font-size:8px;font-style:normal;
   letter-spacing:.08em;color:var(--ink-3);margin-top:3px;
 }
 .log-a{flex:0 0 auto;font-family:var(--f-disp);font-size:17px;color:var(--ink)}
-.log-x{
-  flex:0 0 auto;appearance:none;background:none;border:none;cursor:pointer;
-  font-family:var(--f-mono);font-size:14px;line-height:1;color:var(--ink-3);
-  padding:4px 2px 4px 6px;transition:color .2s;
-}
-.log-x:hover,.log-x:active{color:var(--vermilion)}
 .log-empty{
   font-family:var(--f-mono);font-size:9.5px;letter-spacing:.16em;
   color:var(--ink-3);margin-top:calc(var(--u)*4);
@@ -1377,10 +1386,10 @@ function viewByDay(){
     return `<section class="log-sec">
       <div class="log-h"><span class="log-d">DAY ${d.n} · ${esc(d.date)}</span><span class="log-sub">₩${nfmt(sub)}</span></div>
       ${items.map(x=>`<div class="log-r">
+        <button class="log-del" data-i="${x.i}" type="button" tabindex="-1">刪除</button>
         <span class="log-c">${esc(catOf(x))}</span>
         <span class="log-n">${esc(x.n||"—")}${x.nt?`<em class="log-o">輸入 NT$${nfmt(x.nt)}</em>`:""}</span>
         <span class="log-a">₩${nfmt(x.a)}</span>
-        <button class="log-x" data-i="${x.i}" type="button" aria-label="刪除這筆">×</button>
       </div>`).join("")}
     </section>`;
   }).join("");
@@ -1472,9 +1481,31 @@ logAdd.addEventListener("click",()=>{
 logAmt.addEventListener("keydown",e=>{ if(e.key==="Enter") logAdd.click(); });
 logNote.addEventListener("keydown",e=>{ if(e.key==="Enter") logAdd.click(); });
 
+/* 右滑展開刪除鍵。原本的小叉叉太靠近金額，捲動時容易誤觸。 */
+const rowsClose=()=>logList.querySelectorAll(".log-r.open").forEach(r=>r.classList.remove("open"));
+let swRow=null, swX=0, swY=0, swDone=false, swJust=false;
+
+logList.addEventListener("pointerdown",e=>{
+  if(e.target.closest(".log-del")) return;
+  swRow=e.target.closest(".log-r"); swX=e.clientX; swY=e.clientY; swDone=false;
+});
+logList.addEventListener("pointermove",e=>{
+  if(!swRow||swDone) return;
+  const dx=e.clientX-swX, dy=e.clientY-swY;
+  if(Math.abs(dy)>Math.abs(dx)+6){ swRow=null; return; }  /* 直向捲動優先 */
+  if(dx>36){ rowsClose(); swRow.classList.add("open"); swDone=swJust=true; }
+  else if(dx<-36){ rowsClose(); swDone=swJust=true; }
+});
+const swEnd=()=>{ swRow=null; swDone=false; };
+logList.addEventListener("pointerup",swEnd);
+logList.addEventListener("pointercancel",swEnd);
+
 logList.addEventListener("click",e=>{
-  const x=e.target.closest(".log-x"); if(!x) return;
-  logs.splice(+x.dataset.i,1); logSave(); logRender();
+  /* 放開手指會補一個 click，不吃掉的話剛滑開的列會立刻被收起來 */
+  if(swJust){ swJust=false; return; }
+  const d=e.target.closest(".log-del");
+  if(d){ logs.splice(+d.dataset.i,1); logSave(); logRender(); return; }
+  rowsClose();   /* 點別處收起來 */
 });
 
 logRender();
