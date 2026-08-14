@@ -428,16 +428,18 @@ body::after{
 .log-form input:focus,.log-form select:focus{outline:none;border-bottom-color:var(--jade)}
 .log-form input::-webkit-outer-spin-button,.log-form input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .log-form .btn{
-  flex:0 0 auto;padding:5px 15px;
-  font-family:var(--f-title);font-weight:700;font-size:14px;letter-spacing:.08em;
+  flex:0 0 auto;padding:4px 12px;
+  font-family:var(--f-title);font-weight:700;font-size:13px;line-height:1.2;letter-spacing:.06em;
 }
+.log-form #logAdd{background:var(--paper-3)}
+.log-form #logAdd:hover,.log-form #logAdd:active{background:var(--vermilion)}
 
 /* 記帳內建小算盤 */
 .mini-t{
   flex:0 0 auto;appearance:none;cursor:pointer;
   border:1px solid var(--line-2);background:var(--paper-3);
-  font-family:var(--f-title);font-weight:700;font-size:14px;line-height:1;
-  color:var(--ink-2);padding:7px 10px;transition:background .2s,color .2s,border-color .2s;
+  font-family:var(--f-title);font-weight:700;font-size:13px;line-height:1.2;
+  color:var(--ink-2);padding:4px 9px;transition:background .2s,color .2s,border-color .2s;
 }
 .mini-t[aria-expanded="true"]{background:var(--jade);color:#fff;border-color:var(--jade)}
 .mini-t:focus-visible{outline:1px solid var(--jade);outline-offset:2px}
@@ -452,7 +454,7 @@ body::after{
   flex:1 1 auto;font-family:var(--f-mono);font-size:9.5px;letter-spacing:.1em;
   color:var(--ink-3);text-align:right;
 }
-.mini-bar .btn{flex:0 0 auto;padding:5px 12px}
+.mini-bar .btn{flex:0 0 auto;padding:4px 12px}
 .mini-pad{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .mini-pad .calc-k{padding:calc(var(--u)*1.625) 0;font-size:19px}
 .mini-pad .calc-k.op,.mini-pad .calc-k.eq{font-size:15px}
