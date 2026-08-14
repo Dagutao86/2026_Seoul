@@ -1,7 +1,7 @@
 /* 首爾七日 — offline cache
    改版行程後把 VERSION 加一，使用者下次連網開啟就會自動更新。 */
 
-const VERSION = "seoul-v31";
+const VERSION = "seoul-v32";
 
 const SHELL = [
   "./",

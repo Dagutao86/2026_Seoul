@@ -411,20 +411,48 @@ body::after{
 .log-tot-k{font-family:var(--f-disp);font-size:30px;line-height:1;color:var(--ink)}
 .log-tot-t{font-family:var(--f-mono);font-size:11px;letter-spacing:.12em;color:var(--jade)}
 .log-form{margin-top:calc(var(--u)*3)}
-.log-row1,.log-row2{display:flex;gap:calc(var(--u)*1.25);align-items:center}
-.log-row2{margin-top:calc(var(--u)*1.5)}
+.log-row{display:flex;gap:calc(var(--u)*1.5);align-items:center}
+.log-row+.log-row{margin-top:calc(var(--u)*1.75)}
+.log-btn-row{justify-content:flex-end}
 .log-form select,.log-form input{
   font-family:var(--f-title);font-size:15px;color:var(--ink);
   background:none;border:none;border-bottom:1px solid var(--line-2);
   border-radius:0;-webkit-appearance:none;appearance:none;
-  padding:4px 0;min-width:0;
+  padding:4px 0;min-width:0;flex:1 1 0;
 }
-.log-form select{flex:0 0 auto;width:82px;color:var(--ink-2)}
-.log-form #logAmt{flex:1 1 auto;text-align:right;font-family:var(--f-disp);font-size:19px}
-.log-form #logNote{flex:1 1 auto}
+.log-form select{color:var(--ink-2)}
+.log-form #logAmt{text-align:right;font-family:var(--f-disp);font-size:19px}
 .log-form input:focus,.log-form select:focus{outline:none;border-bottom-color:var(--jade)}
 .log-form input::-webkit-outer-spin-button,.log-form input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-.log-form .btn{flex:0 0 auto;padding:6px 14px}
+.log-form .btn{flex:0 0 auto;padding:6px 16px}
+
+.log-tabs{display:flex;gap:calc(var(--u)*2.5);margin-top:calc(var(--u)*4)}
+.log-tab{
+  appearance:none;background:none;border:none;cursor:pointer;padding:0 0 5px;
+  font-family:var(--f-mono);font-size:9.5px;letter-spacing:.24em;
+  color:var(--ink-3);border-bottom:2px solid transparent;transition:color .25s,border-color .25s;
+}
+.log-tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--vermilion)}
+.log-tab:focus-visible{outline:1px solid var(--jade);outline-offset:2px}
+
+.log-c{
+  flex:0 0 auto;font-family:var(--f-mono);font-size:8px;letter-spacing:.1em;
+  color:var(--jade);border:1px solid var(--line-2);background:var(--paper-3);
+  padding:2px 5px;white-space:nowrap;
+}
+
+/* 分類統計 */
+.cat-r{padding:calc(var(--u)*1.5) 0;border-bottom:1px solid var(--line)}
+.cat-top{display:flex;justify-content:space-between;align-items:baseline;gap:var(--u)}
+.cat-n{font-family:var(--f-title);font-size:16px;color:var(--ink)}
+.cat-v{font-family:var(--f-disp);font-size:17px;color:var(--ink);white-space:nowrap}
+.cat-bar{height:3px;background:var(--line);margin-top:calc(var(--u)*1);overflow:hidden}
+.cat-bar span{display:block;height:100%;background:var(--jade)}
+.cat-meta{
+  display:flex;justify-content:space-between;gap:var(--u);
+  font-family:var(--f-mono);font-size:8.5px;letter-spacing:.1em;
+  color:var(--ink-3);margin-top:5px;
+}
 .log-sec{margin-top:calc(var(--u)*4)}
 .log-h{
   display:flex;justify-content:space-between;align-items:baseline;
@@ -654,7 +682,7 @@ body::after{
 
  <section id="viewLog" hidden>
    <header class="pg-head">
-     <div class="eyebrow">Expenses · 分日記帳</div>
+     <div class="eyebrow">Expenses · 支出紀錄</div>
      <h2>記帳</h2>
      <div class="log-tot">
        <span class="log-tot-k" id="logSum">₩0</span>
@@ -662,14 +690,21 @@ body::after{
      </div>
    </header>
    <div class="log-form">
-     <div class="log-row1">
+     <div class="log-row">
        <select id="logDay" aria-label="第幾天"></select>
-       <input id="logAmt" type="number" inputmode="decimal" placeholder="金額 ₩" aria-label="金額">
+       <select id="logCat" aria-label="分類"></select>
      </div>
-     <div class="log-row2">
+     <div class="log-row">
+       <input id="logAmt" type="number" inputmode="decimal" placeholder="金額 ₩" aria-label="金額">
        <input id="logNote" type="text" placeholder="項目（可留空）" aria-label="項目">
+     </div>
+     <div class="log-row log-btn-row">
        <button class="btn" id="logAdd" type="button">記一筆</button>
      </div>
+   </div>
+   <div class="log-tabs" role="tablist" aria-label="統計方式">
+     <button class="log-tab" id="tabDay" role="tab" aria-selected="true" type="button">依日期</button>
+     <button class="log-tab" id="tabCat" role="tab" aria-selected="false" type="button">依分類</button>
    </div>
    <div id="logList"></div>
  </section>
@@ -1243,42 +1278,82 @@ document.getElementById("calcPad").addEventListener("click",e=>{
 calcPaint();
 
 /* ══ 記帳 ══ 依天數分組，存 localStorage */
-const logDay=document.getElementById("logDay"), logAmt=document.getElementById("logAmt"),
-      logNote=document.getElementById("logNote"), logAdd=document.getElementById("logAdd"),
-      logList=document.getElementById("logList"), logSum=document.getElementById("logSum"),
-      logSumTwd=document.getElementById("logSumTwd");
+const CATS=["餐飲","衣服","超商","藥局","Olive Young","交通","娛樂","住宿","其他"];
+
+const logDay=document.getElementById("logDay"), logCat=document.getElementById("logCat"),
+      logAmt=document.getElementById("logAmt"), logNote=document.getElementById("logNote"),
+      logAdd=document.getElementById("logAdd"), logList=document.getElementById("logList"),
+      logSum=document.getElementById("logSum"), logSumTwd=document.getElementById("logSumTwd"),
+      tabDay=document.getElementById("tabDay"), tabCat=document.getElementById("tabCat");
 
 let logs=(()=>{ try{ return JSON.parse(localStorage.getItem("expenses")||"[]"); }catch(_){ return []; } })();
 const logSave=()=>{ try{ localStorage.setItem("expenses",JSON.stringify(logs)); }catch(_){} };
+let logMode="day";
 
 logDay.innerHTML=DAYS.map(d=>`<option value="${d.n}">Day ${d.n} · ${esc(d.date)}</option>`).join("");
 logDay.value=String(DAYS[Math.max(dayIndex(),0)].n);
+logCat.innerHTML=CATS.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("");
 
-function logRender(){
+/* 舊資料沒有分類欄位，一律歸到「其他」 */
+const catOf=e=>CATS.includes(e.c)?e.c:"其他";
+
+function viewByDay(){
   const by={};
   logs.forEach((e,i)=>{ (by[e.d]=by[e.d]||[]).push({...e,i}); });
-  let total=0;
-  const html=DAYS.map(d=>{
+  return DAYS.map(d=>{
     const items=by[d.n]; if(!items||!items.length) return "";
-    const sub=items.reduce((s,x)=>s+x.a,0); total+=sub;
+    const sub=items.reduce((s,x)=>s+x.a,0);
     return `<section class="log-sec">
       <div class="log-h"><span class="log-d">DAY ${d.n} · ${esc(d.date)}</span><span class="log-sub">₩${nfmt(sub)}</span></div>
       ${items.map(x=>`<div class="log-r">
+        <span class="log-c">${esc(catOf(x))}</span>
         <span class="log-n">${esc(x.n||"—")}</span>
         <span class="log-a">₩${nfmt(x.a)}</span>
         <button class="log-x" data-i="${x.i}" type="button" aria-label="刪除這筆">×</button>
       </div>`).join("")}
     </section>`;
   }).join("");
+}
+
+function viewByCat(){
+  const by={}; let total=0;
+  logs.forEach(e=>{
+    const c=catOf(e);
+    by[c]=by[c]||{sum:0,n:0};
+    by[c].sum+=e.a; by[c].n++; total+=e.a;
+  });
+  const rows=CATS.filter(c=>by[c]).sort((a,b)=>by[b].sum-by[a].sum);
+  if(!rows.length) return "";
+  return `<section class="log-sec">
+    <div class="log-h"><span class="log-d">分類統計</span><span class="log-sub">₩${nfmt(total)}</span></div>
+    ${rows.map(c=>{
+      const {sum,n}=by[c], pct=total?Math.round(sum/total*100):0;
+      return `<div class="cat-r">
+        <div class="cat-top"><span class="cat-n">${esc(c)}</span><span class="cat-v">₩${nfmt(sum)}</span></div>
+        <div class="cat-bar"><span style="width:${pct}%"></span></div>
+        <div class="cat-meta"><span>${n} 筆 · ${pct}%</span><span>${RATE==null?"":"≈ NT$"+nfmt(sum*RATE)}</span></div>
+      </div>`;
+    }).join("")}
+  </section>`;
+}
+
+function logRender(){
+  const html = logMode==="cat" ? viewByCat() : viewByDay();
   logList.innerHTML = html || '<div class="log-empty">還沒有紀錄</div>';
+  const total=logs.reduce((s,x)=>s+x.a,0);
   logSum.textContent="₩"+nfmt(total);
   logSumTwd.textContent = RATE==null ? "" : twdText(total);
+  tabDay.setAttribute("aria-selected",String(logMode!=="cat"));
+  tabCat.setAttribute("aria-selected",String(logMode==="cat"));
 }
+
+tabDay.addEventListener("click",()=>{ logMode="day"; logRender(); });
+tabCat.addEventListener("click",()=>{ logMode="cat"; logRender(); });
 
 logAdd.addEventListener("click",()=>{
   const a=parseFloat(logAmt.value);
   if(!isFinite(a)||a<=0){ logAmt.focus(); return; }
-  logs.push({d:+logDay.value,a:Math.round(a),n:logNote.value.trim()});
+  logs.push({d:+logDay.value,c:logCat.value,a:Math.round(a),n:logNote.value.trim()});
   logSave(); logRender();
   logAmt.value=""; logNote.value=""; logAmt.focus();
 });
