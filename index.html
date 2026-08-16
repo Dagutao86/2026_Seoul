@@ -493,7 +493,12 @@ body::after{
   padding-bottom:calc(var(--u)*.75);border-bottom:1px solid var(--line-2);
 }
 .log-d{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.28em;color:var(--gold)}
-.log-sub{font-family:var(--f-mono);font-size:12.5px;letter-spacing:.08em;color:var(--ink-2)}
+.log-sub{font-family:var(--f-mono);font-size:12.5px;letter-spacing:.08em;color:var(--ink-2);text-align:right}
+/* 台幣換算另起一行：金額長的時候（六位數韓元）擠同一行會撐破窄螢幕 */
+.log-sub-t{
+  display:block;font-style:normal;font-family:var(--f-mono);
+  font-size:11px;letter-spacing:.06em;color:var(--jade);margin-top:3px;
+}
 .log-r{
   display:flex;align-items:baseline;gap:calc(var(--u)*1.25);
   padding:calc(var(--u)*1.25) 0;border-bottom:1px solid var(--line);
@@ -1394,7 +1399,7 @@ function viewByDay(){
     const items=by[d.n]; if(!items||!items.length) return "";
     const sub=items.reduce((s,x)=>s+x.a,0);
     return `<section class="log-sec">
-      <div class="log-h"><span class="log-d">DAY ${d.n} · ${esc(d.date)}</span><span class="log-sub">₩${nfmt(sub)}</span></div>
+      <div class="log-h"><span class="log-d">DAY ${d.n} · ${esc(d.date)}</span><span class="log-sub">₩${nfmt(sub)}${RATE==null?"":`<em class="log-sub-t">${twdText(sub)}</em>`}</span></div>
       ${items.map(x=>`<div class="log-r">
         <span class="log-c">${esc(catOf(x))}</span>
         <span class="log-n">${esc(x.n||"—")}${x.nt?`<em class="log-o">輸入 NT$${nfmt(x.nt)}</em>`:""}</span>
