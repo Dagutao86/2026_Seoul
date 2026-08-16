@@ -413,17 +413,17 @@ body::after{
 .log-form{margin-top:calc(var(--u)*3)}
 /* flex-end：按鈕比輸入框高，靠下對齊才能讓按鈕底框與輸入框底線切齊 */
 .log-row{display:flex;gap:calc(var(--u)*1.5);align-items:flex-end}
-.log-row+.log-row{margin-top:calc(var(--u)*1.75)}
+.log-row+.log-row{margin-top:calc(var(--u)*2.25)}
 .log-btn-row{justify-content:flex-end}
 .log-form select,.log-form input{
-  font-family:var(--f-title);font-size:16.5px;color:var(--ink);
+  font-family:var(--f-title);font-size:19.5px;color:var(--ink);
   background:none;border:none;border-bottom:1px solid var(--line-2);
   border-radius:0;-webkit-appearance:none;appearance:none;
   padding:4px 0;min-width:0;flex:1 1 0;
 }
 .log-form select{color:var(--ink-2)}
-.log-form #logCur{flex:0 0 auto;width:60px}
-.log-form #logAmt{text-align:right;font-size:18.5px}
+.log-form #logCur{flex:0 0 auto;width:72px}
+.log-form #logAmt{text-align:right;font-size:21px}
 .log-form #logAmt::placeholder{font-family:var(--f-title);color:var(--ink-3)}
 .log-form input:focus,.log-form select:focus{outline:none;border-bottom-color:var(--jade)}
 .log-form input::-webkit-outer-spin-button,.log-form input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
@@ -513,7 +513,7 @@ body::after{
 }
 .log-r.open .log-del{width:56px;margin-left:calc(var(--u)*1.25)}
 .log-del:focus-visible{outline:1px solid var(--jade);outline-offset:-3px}
-.log-n{flex:1 1 auto;font-family:var(--f-title);font-size:16.5px;color:var(--ink-2);word-break:break-word}
+.log-n{flex:1 1 auto;font-family:var(--f-title);font-size:19.5px;color:var(--ink-2);word-break:break-word}
 .log-o{
   display:block;font-family:var(--f-mono);font-size:9.5px;font-style:normal;
   letter-spacing:.08em;color:var(--ink-3);margin-top:3px;
@@ -845,7 +845,7 @@ const DAYS=[
   {when:"12:30",h:"移動至聖水洞",p:"首爾站搭 1 號線一站到市廳，轉 2 號線直達聖水，約 30 分鐘。聖水站出口分兩邊：3 號出口偏咖啡廳、快閃店，4 號出口是潮牌商圈，看要先逛哪一區再決定。",spots:["성수동"]},
   {when:"13:00",h:"聖水洞午餐",p:"工業風咖啡廳、選品店、打卡點都集中在這一帶，咖啡廳多在 3 號出口那側。",spots:["성수동 카페"]},
   {when:"下午",h:"Miffy Store Seoul",p:"城東區練武場 13 街 5 號，約 10:30–19:30。韓國限定周邊很多，記得帶購物袋（店內袋子要另外買）。這一帶走 4 號出口。",spots:["미피 스토어 서울"]},
-  {when:"下午",h:"Torriden 聖水旗艦店",p:"托里登首間旗艦店「토리든 커넥트 성수」，城東區聖水二路 7 街 17 號，11:00–20:00。可以現場試用整條產品線。",spots:["토리든 커넥트 성수"]},
+  {when:"下午",h:"Torriden 聖水旗艦店",p:"托里登首間旗艦店「토리든 커넥트 성수」，城東區聖水二路 7 街 17 號，11:00–20:00。可以現場試用整條產品線。聽說講中文會多送東西，結帳時可以試試。",spots:["토리든 커넥트 성수"]},
   {when:"傍晚",h:"聖水洞續攤",p:"沒逛夠的話 Day 4 上午可以再回來。"},
   {when:"睡前",h:"回民宿",p:"Seoul Seodaemun-gu Sinchon-ro 3na-gil 3。走弘大入口站約 8 分鐘、新村站約 13 分鐘。點下方地址開 Naver Map，再按導航就會帶路。",spots:["서울 서대문구 신촌로3나길 3"]}
  ]},
