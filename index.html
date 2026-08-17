@@ -1604,7 +1604,9 @@ let logMode="day";
 /* 正在編輯的紀錄 id；null 表示現在是新增模式。
    用 id 而不是陣列索引——合併與墓碑會讓索引位移。 */
 let editId=null;
-let shSel=new Set();
+/* shCustom：使用者是否自己動過分攤選擇。沒動過就維持「全選」的預設，
+   新成員同步進來時要自動納入——少算一個人分攤是會出錯的那種靜默 bug。 */
+let shSel=new Set(), shCustom=false;
 
 /* id 要跨裝置唯一，時間戳加隨機碼就夠了 */
 const rid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -1865,7 +1867,7 @@ tabBal.addEventListener("click",()=>{ logMode="bal"; logRender(); });
 
 /* ══ 成員 ══ */
 const memSay=(t,ok)=>{ memMsg.textContent=t; memMsg.className="bk-msg"+(t?(ok?" ok":" warn"):""); };
-const shReset=()=>{ shSel=new Set(memLive().map(m=>m.id)); };
+const shReset=()=>{ shSel=new Set(memLive().map(m=>m.id)); shCustom=false; };
 
 function shPaint(){
   const ms=memLive();
@@ -1895,9 +1897,13 @@ function memRender(){
   if(ms.some(x=>x.id===keep)) logBy.value=keep;
   else if(me&&ms.some(x=>x.id===me)) logBy.value=me;
 
-  /* 已經不在清單上的人要從分攤選擇裡踢掉 */
-  [...shSel].forEach(id=>{ if(!ms.some(m2=>m2.id===id)) shSel.delete(id); });
-  if(!shSel.size) shReset();
+  /* 沒自己動過就跟著成員清單走：新同步進來的人自動納入分攤。
+     動過就只把已離開的人踢掉，不要蓋掉使用者的選擇。 */
+  if(!shCustom) shReset();
+  else {
+    [...shSel].forEach(id=>{ if(!ms.some(m2=>m2.id===id)) shSel.delete(id); });
+    if(!shSel.size) shReset();
+  }
   shPaint();
   shRow.hidden = ms.length<2;   /* 只有一個人就沒有分攤可言 */
 }
@@ -1954,7 +1960,7 @@ memRows.addEventListener("click",e=>{
 
 shChips.addEventListener("click",e=>{
   const c=e.target.closest("[data-sh]");
-  if(c){ const id=c.dataset.sh; shSel.has(id)?shSel.delete(id):shSel.add(id); shPaint(); return; }
+  if(c){ const id=c.dataset.sh; shSel.has(id)?shSel.delete(id):shSel.add(id); shCustom=true; shPaint(); return; }
   if(e.target.closest("#shAll")){ shReset(); shPaint(); }
 });
 
@@ -2004,7 +2010,7 @@ function editStart(id){
   logCat.value=catOf(e);
   if(e.by&&memLive().some(m=>m.id===e.by)) logBy.value=e.by;
   shSel=new Set(shareOf(e).filter(p=>memLive().some(m=>m.id===p)));
-  if(!shSel.size) shReset();
+  if(!shSel.size) shReset(); else shCustom=true;   /* 編輯讀回的選擇不能被同步蓋掉 */
   shPaint();
   /* 當初用台幣記的就用台幣讀回來，看到的才是自己輸入的那個數字 */
   if(e.nt!=null && RATE!=null){ logCur.value="TWD"; logAmt.value=String(e.nt); }
