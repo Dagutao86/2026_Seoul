@@ -506,18 +506,32 @@ body::after{
   /* 直向留給捲動、橫向交給滑動手勢；不鎖選取的話瀏覽器會判定成選字並中斷手勢 */
   touch-action:pan-y;-webkit-user-select:none;user-select:none;
 }
-/* 左滑才展開刪除鍵：用寬度把內容往左擠，不做絕對定位疊層，
-   就不必幫每一列補不透明底色去遮住按鈕 */
-.log-del{
-  flex:0 0 auto;width:0;padding:0;margin:0;overflow:hidden;
-  appearance:none;border:none;cursor:pointer;
-  background:var(--vermilion);color:#fff;
-  font-family:var(--f-title);font-weight:700;font-size:14.5px;line-height:1;
-  white-space:nowrap;align-self:stretch;
+/* 左滑才展開編輯／刪除：用寬度把內容往左擠，不做絕對定位疊層，
+   就不必幫每一列補不透明底色去遮住按鈕。
+   兩顆鍵包在同一層裡，才不會被 .log-r 的 gap 各撐開一道空隙 */
+.log-acts{
+  flex:0 0 auto;display:flex;gap:5px;width:0;overflow:hidden;
+  align-self:stretch;
   transition:width .2s cubic-bezier(.2,.7,.3,1),margin .2s cubic-bezier(.2,.7,.3,1);
 }
-.log-r.open .log-del{width:56px;margin-left:calc(var(--u)*1.25)}
-.log-del:focus-visible{outline:1px solid var(--jade);outline-offset:-3px}
+.log-r.open .log-acts{width:109px;margin-left:calc(var(--u)*1.25)}
+.log-edit,.log-del{
+  flex:0 0 52px;padding:0;margin:0;
+  appearance:none;border:none;cursor:pointer;color:#fff;
+  font-family:var(--f-title);font-weight:700;font-size:14.5px;line-height:1;
+  white-space:nowrap;
+}
+.log-edit{background:var(--jade)}
+.log-del{background:var(--vermilion)}
+.log-edit:focus-visible,.log-del:focus-visible{outline:1px solid var(--ink);outline-offset:-3px}
+/* 正在編輯的那一列標起來，才知道上面表單改的是哪一筆 */
+.log-r.editing{background:var(--paper-3)}
+.log-r.editing .log-n{color:var(--jade)}
+.log-tip{
+  font-family:var(--f-title);font-size:15.5px;letter-spacing:.04em;
+  color:var(--jade);margin-bottom:calc(var(--u)*1.75);
+}
+.log-tip[hidden]{display:none}
 .log-n{flex:1 1 auto;font-family:var(--f-title);font-size:19.5px;color:var(--ink-2);word-break:break-word}
 .log-o{
   display:block;font-family:var(--f-mono);font-size:9.5px;font-style:normal;
@@ -742,6 +756,7 @@ body::after{
      </div>
    </header>
    <div class="log-form">
+     <div class="log-tip" id="logTip" hidden>編輯中 · 改完按「更新」</div>
      <div class="log-row">
        <select id="logDay" aria-label="第幾天"></select>
        <select id="logCat" aria-label="分類"></select>
@@ -783,6 +798,7 @@ body::after{
      </div>
      <div class="log-row">
        <input id="logNote" type="text" placeholder="項目（可留空）" aria-label="項目">
+       <button class="btn" id="logCancel" type="button" hidden>取消</button>
        <button class="btn" id="logAdd" type="button">記一筆</button>
      </div>
    </div>
@@ -1376,6 +1392,7 @@ const CATS=["餐飲","衣服","超商","藥局","Olive Young","交通","娛樂",
 const logDay=document.getElementById("logDay"), logCat=document.getElementById("logCat"),
       logCur=document.getElementById("logCur"), logAmt=document.getElementById("logAmt"),
       logNote=document.getElementById("logNote"), logAdd=document.getElementById("logAdd"),
+      logCancel=document.getElementById("logCancel"), logTip=document.getElementById("logTip"),
       logList=document.getElementById("logList"), logSum=document.getElementById("logSum"),
       logSumTwd=document.getElementById("logSumTwd"),
       tabDay=document.getElementById("tabDay"), tabCat=document.getElementById("tabCat");
@@ -1383,6 +1400,8 @@ const logDay=document.getElementById("logDay"), logCat=document.getElementById("
 let logs=(()=>{ try{ return JSON.parse(localStorage.getItem("expenses")||"[]"); }catch(_){ return []; } })();
 const logSave=()=>{ try{ localStorage.setItem("expenses",JSON.stringify(logs)); }catch(_){} };
 let logMode="day";
+/* 正在編輯的紀錄在 logs 裡的索引；null 表示現在是新增模式 */
+let editIdx=null;
 
 /* Day 0 收行前花費（機票、接送、行前採買） */
 const LOG_DAYS=[{n:0,date:"行前"}].concat(DAYS.map(d=>({n:d.n,date:d.date})));
@@ -1402,11 +1421,14 @@ function viewByDay(){
     const sub=items.reduce((s,x)=>s+x.a,0);
     return `<section class="log-sec">
       <div class="log-h"><span class="log-d">DAY ${d.n} · ${esc(d.date)}</span><span class="log-sub">₩${nfmt(sub)}${RATE==null?"":`<em class="log-sub-t">${twdText(sub)}</em>`}</span></div>
-      ${items.map(x=>`<div class="log-r">
+      ${items.map(x=>`<div class="log-r${editIdx===x.i?" editing":""}">
         <span class="log-c">${esc(catOf(x))}</span>
         <span class="log-n">${esc(x.n||"—")}${x.nt?`<em class="log-o">輸入 NT$${nfmt(x.nt)}</em>`:""}</span>
         <span class="log-a">₩${nfmt(x.a)}</span>
-        <button class="log-del" data-i="${x.i}" type="button" tabindex="-1">刪除</button>
+        <span class="log-acts">
+          <button class="log-edit" data-e="${x.i}" type="button" tabindex="-1">編輯</button>
+          <button class="log-del" data-i="${x.i}" type="button" tabindex="-1">刪除</button>
+        </span>
       </div>`).join("")}
     </section>`;
   }).join("");
@@ -1478,6 +1500,35 @@ miniDone.addEventListener("click",()=>{ mEng.eq(); miniPaint(); miniToggle(false
 logCur.addEventListener("change",()=>{ if(!mini.hidden) miniPaint(); });
 bindPad(miniPad,mEng,miniPaint);
 
+/* ══ 編輯既有紀錄 ══
+   直接把那筆讀回上面的表單，改完按「更新」蓋回去，不用刪掉重打 */
+function editPaint(){
+  const on = editIdx!==null;
+  logAdd.textContent = on ? "更新" : "記一筆";
+  logCancel.hidden = !on;
+  logTip.hidden = !on;
+}
+function editReset(){
+  editIdx=null;
+  logAmt.value=""; logNote.value="";
+  mEng.clear(); miniToggle(false);
+  editPaint();
+}
+function editStart(i){
+  const e=logs[i]; if(!e) return;
+  editIdx=i;
+  logDay.value=String(e.d);
+  logCat.value=catOf(e);
+  /* 當初用台幣記的就用台幣讀回來，看到的才是自己輸入的那個數字 */
+  if(e.nt!=null && RATE!=null){ logCur.value="TWD"; logAmt.value=String(e.nt); }
+  else { logCur.value="KRW"; logAmt.value=String(e.a); }
+  logNote.value=e.n||"";
+  mEng.clear(); miniToggle(false);
+  editPaint(); logRender();
+  document.getElementById("viewLog").scrollIntoView({behavior:"smooth",block:"start"});
+}
+logCancel.addEventListener("click",()=>{ editReset(); logRender(); });
+
 logAdd.addEventListener("click",()=>{
   const a=parseFloat(logAmt.value);
   if(!isFinite(a)||a<=0){ logAmt.focus(); return; }
@@ -1485,15 +1536,17 @@ logAdd.addEventListener("click",()=>{
   /* 一律換算成韓元入帳，統計才有共同基準；
      台幣輸入時用當下匯率換，並把原始金額留著顯示。 */
   const rec={d:+logDay.value,c:logCat.value,n:logNote.value.trim()};
+  const old = editIdx!==null ? logs[editIdx] : null;
   if(logCur.value==="TWD"){
     if(RATE==null){ logCur.focus(); return; }
-    rec.a=Math.round(a/RATE); rec.nt=Math.round(a);
+    rec.nt=Math.round(a);
+    /* 編輯時金額沒動就沿用當初入帳的韓元，免得匯率浮動讓舊紀錄自己變數字 */
+    rec.a = (old && old.nt===rec.nt) ? old.a : Math.round(a/RATE);
   } else rec.a=Math.round(a);
 
-  logs.push(rec);
-  logSave(); logRender();
-  logAmt.value=""; logNote.value="";
-  mEng.clear(); miniToggle(false);
+  if(editIdx!==null) logs[editIdx]=rec; else logs.push(rec);
+  logSave();
+  editReset(); logRender();
 });
 logAmt.addEventListener("keydown",e=>{ if(e.key==="Enter") logAdd.click(); });
 logNote.addEventListener("keydown",e=>{ if(e.key==="Enter") logAdd.click(); });
@@ -1503,7 +1556,7 @@ const rowsClose=()=>logList.querySelectorAll(".log-r.open").forEach(r=>r.classLi
 let swRow=null, swX=0, swY=0, swDone=false, swJust=false;
 
 logList.addEventListener("pointerdown",e=>{
-  if(e.target.closest(".log-del")) return;
+  if(e.target.closest(".log-acts")) return;
   swRow=e.target.closest(".log-r"); swX=e.clientX; swY=e.clientY; swDone=false;
 });
 logList.addEventListener("pointermove",e=>{
@@ -1520,8 +1573,17 @@ logList.addEventListener("pointercancel",swEnd);
 logList.addEventListener("click",e=>{
   /* 放開手指會補一個 click，不吃掉的話剛滑開的列會立刻被收起來 */
   if(swJust){ swJust=false; return; }
+  const ed=e.target.closest(".log-edit");
+  if(ed){ editStart(+ed.dataset.e); return; }
   const d=e.target.closest(".log-del");
-  if(d){ logs.splice(+d.dataset.i,1); logSave(); logRender(); return; }
+  if(d){
+    const i=+d.dataset.i;
+    logs.splice(i,1);
+    /* 刪掉一筆之後面的索引會往前挪，正在編輯的那筆要跟著校正 */
+    if(editIdx===i) editReset();
+    else if(editIdx!==null && editIdx>i) editIdx--;
+    logSave(); logRender(); return;
+  }
   rowsClose();   /* 點別處收起來 */
 });
 
