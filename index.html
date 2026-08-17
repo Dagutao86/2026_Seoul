@@ -553,6 +553,21 @@ body::after{
 }
 .bk-msg.ok{color:var(--jade)}
 .bk-msg.warn{color:var(--vermilion)}
+.bk-h2{margin-top:calc(var(--u)*5)}
+.sy-form{margin-top:calc(var(--u)*2)}
+.sy-form[hidden]{display:none}
+.sy-form input{
+  display:block;width:100%;
+  font-family:var(--f-title);font-size:17px;color:var(--ink);
+  background:none;border:none;border-bottom:1px solid var(--line-2);
+  border-radius:0;-webkit-appearance:none;appearance:none;padding:4px 0;
+}
+/* 網址是技術字串，用等寬字才看得出來有沒有貼錯 */
+.sy-form #syUrlIn{font-family:var(--f-mono);font-size:11px;letter-spacing:.02em}
+.sy-form input+input{margin-top:calc(var(--u)*2)}
+.sy-form input::placeholder{font-family:var(--f-title);color:var(--ink-3)}
+.sy-form input:focus{outline:none;border-bottom-color:var(--jade)}
+.sy-form .bk-row{margin-top:calc(var(--u)*2)}
 .upd-msg{
   font-family:var(--f-mono);font-size:10px;letter-spacing:.1em;
   color:var(--ink-3);text-align:right;line-height:1.7;
@@ -820,13 +835,30 @@ body::after{
    <div id="logList"></div>
    <div class="bk">
      <h4>BACKUP</h4>
-     <p class="bk-p">記帳只存在這支手機裡。出門前後各匯出一次存到雲端硬碟或傳給自己，換手機、重灌、誤刪 App 都救得回來。</p>
+     <p class="bk-p">記帳只存在這支手機裡。接上雲端同步之後每記一筆都會自動備份；沒接的話請自己定期匯出存起來。</p>
      <div class="bk-row">
        <button class="btn" id="bkOut" type="button">匯出備份</button>
        <button class="btn" id="bkIn" type="button">匯入備份</button>
      </div>
      <div class="bk-msg" id="bkMsg"></div>
      <input id="bkFile" type="file" accept="application/json,.json" hidden>
+
+     <h4 class="bk-h2">CLOUD SYNC</h4>
+     <div class="bk-msg" id="syMsg"></div>
+     <div class="bk-row">
+       <button class="btn" id="syCfg" type="button">設定同步</button>
+       <button class="btn" id="syUp" type="button" hidden>立即上傳</button>
+       <button class="btn" id="syDown" type="button" hidden>從雲端讀回</button>
+     </div>
+     <div class="sy-form" id="syForm" hidden>
+       <input id="syUrlIn" type="url" inputmode="url" autocapitalize="off" spellcheck="false" placeholder="同步網址（結尾是 /exec）" aria-label="同步網址">
+       <input id="syUserIn" type="text" autocapitalize="off" spellcheck="false" placeholder="你的代號" aria-label="你的代號">
+       <div class="bk-row">
+         <button class="btn" id="sySave" type="button">儲存</button>
+         <button class="btn" id="syOff" type="button">關閉同步</button>
+       </div>
+       <p class="bk-p">代號就是找回資料的鑰匙——換手機時填一樣的代號就能把紀錄讀回來。同一個代號只在一支手機上用，不然兩台會互相蓋掉。</p>
+     </div>
    </div>
  </section>
 
@@ -1419,7 +1451,13 @@ const logDay=document.getElementById("logDay"), logCat=document.getElementById("
       tabDay=document.getElementById("tabDay"), tabCat=document.getElementById("tabCat");
 
 let logs=(()=>{ try{ return JSON.parse(localStorage.getItem("expenses")||"[]"); }catch(_){ return []; } })();
-const logSave=()=>{ try{ localStorage.setItem("expenses",JSON.stringify(logs)); }catch(_){} };
+/* 每次寫入都通知雲端同步。用可替換的 hook 而不是直接呼叫，
+   同步那段程式碼寫在後面，這裡不會踩到宣告順序 */
+let onLogChange=null;
+const logSave=()=>{
+  try{ localStorage.setItem("expenses",JSON.stringify(logs)); }catch(_){}
+  if(onLogChange) onLogChange();
+};
 let logMode="day";
 /* 正在編輯的紀錄在 logs 裡的索引；null 表示現在是新增模式 */
 let editIdx=null;
@@ -1433,6 +1471,16 @@ logCat.innerHTML=CATS.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).joi
 
 /* 舊資料沒有分類欄位，一律歸到「其他」 */
 const catOf=e=>CATS.includes(e.c)?e.c:"其他";
+
+/* 從備份檔或雲端讀進來的東西一律重建一遍，壞掉的欄位不要帶進 logs */
+function recClean(arr){
+  if(!Array.isArray(arr)) return [];
+  return arr.filter(x=>x&&typeof x==="object"&&isFinite(+x.a)&&+x.a>0).map(x=>{
+    const r={d:isFinite(+x.d)?+x.d:0,c:CATS.includes(x.c)?x.c:"其他",n:String(x.n||""),a:Math.round(+x.a)};
+    if(isFinite(+x.nt)&&+x.nt>0) r.nt=Math.round(+x.nt);
+    return r;
+  });
+}
 
 function viewByDay(){
   const by={};
@@ -1652,12 +1700,7 @@ bkFile.addEventListener("change",async()=>{
     const o=JSON.parse(await f.text());
     const arr=Array.isArray(o)?o:(o&&Array.isArray(o.expenses)?o.expenses:null);
     if(!arr) throw new Error("format");
-    /* 逐筆過濾重建，壞掉的欄位不要帶進來 */
-    const clean=arr.filter(x=>x&&typeof x==="object"&&isFinite(+x.a)&&+x.a>0).map(x=>{
-      const r={d:isFinite(+x.d)?+x.d:0,c:CATS.includes(x.c)?x.c:"其他",n:String(x.n||""),a:Math.round(+x.a)};
-      if(isFinite(+x.nt)&&+x.nt>0) r.nt=Math.round(+x.nt);
-      return r;
-    });
+    const clean=recClean(arr);
     if(!clean.length){ bkSay("這個檔裡沒有可用的紀錄",0); bkFile.value=""; return; }
     if(!confirm("備份裡有 "+clean.length+" 筆。匯入會「取代」目前的 "+logs.length+" 筆，確定嗎？")){ bkFile.value=""; bkSay(""); return; }
     logs=clean; editReset(); logSave(); logRender();
@@ -1665,6 +1708,131 @@ bkFile.addEventListener("change",async()=>{
   }catch(_){ bkSay("讀不到這個檔，請確認是本 App 匯出的備份",0); }
   bkFile.value="";
 });
+
+/* ══ 雲端同步 ══
+   Google Apps Script + 試算表（設定步驟見 repo 的 SYNC.md）。
+   每一列都帶「代號」，push 只換掉自己代號的列，不同人的帳不會互相蓋到。
+   本機 localStorage 仍是主力：沒網路照記，連上網再自動補推。 */
+const syCfg=document.getElementById("syCfg"), syUp=document.getElementById("syUp"),
+      syDown=document.getElementById("syDown"), syForm=document.getElementById("syForm"),
+      syUrlIn=document.getElementById("syUrlIn"), syUserIn=document.getElementById("syUserIn"),
+      sySave=document.getElementById("sySave"), syOff=document.getElementById("syOff"),
+      syMsg=document.getElementById("syMsg");
+
+let syUrl=localStorage.getItem("syncUrl")||"";
+let syUser=localStorage.getItem("syncUser")||"";
+let syPend=localStorage.getItem("syncPend")==="1";
+let syTimer=null, syBusy=false, syQuiet=false;
+
+const syOnCfg=()=>!!(syUrl&&syUser);
+const sySay=(t,ok)=>{ syMsg.textContent=t; syMsg.className="bk-msg"+(t?(ok===1?" ok":ok===0?" warn":""):""); };
+const syMark=v=>{ syPend=v; try{ localStorage.setItem("syncPend",v?"1":"0"); }catch(_){} };
+
+function syPaint(){
+  const on=syOnCfg();
+  syUp.hidden=syDown.hidden=!on;
+  syCfg.textContent=on?"同步設定":"設定同步";
+  if(!on) sySay("尚未設定 · 記帳只存在這支手機");
+  else if(syPend) sySay("有 "+logs.length+" 筆還沒上傳",0);
+}
+
+async function syPush(quiet){
+  if(!syOnCfg()) return;
+  /* 上一次還在跑就往後排，不要兩個請求同時改同一張表 */
+  if(syBusy){ clearTimeout(syTimer); syTimer=setTimeout(()=>syPush(1),1200); return; }
+  syBusy=true;
+  if(!quiet) sySay("上傳中…");
+  try{
+    /* 刻意用 text/plain：application/json 會觸發 preflight，Apps Script 不處理 OPTIONS */
+    const r=await fetch(syUrl,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body:JSON.stringify({act:"push",user:syUser,rows:logs})});
+    const o=await r.json();
+    if(!o||!o.ok) throw new Error((o&&o.err)||"push");
+    syMark(false);
+    sySay("已同步 · 雲端 "+o.n+" 筆",1);
+  }catch(_){
+    syMark(true);
+    sySay(quiet?"有 "+logs.length+" 筆還沒上傳，等有網路會自動再試":"上傳失敗，檢查網路或同步網址",0);
+  }
+  syBusy=false;
+}
+
+/* 剛從雲端讀回來的東西不需要再推回去。
+   關掉變動通知並取消排隊中的上傳，免得白跑一趟請求、也免得狀態列亂跳 */
+function syAdopt(rows){
+  clearTimeout(syTimer);
+  syQuiet=true;
+  logs=rows; editReset(); logSave(); logRender();
+  syQuiet=false;
+  syMark(false);
+}
+
+async function syPull(manual){
+  if(!syOnCfg()) return;
+  if(manual) sySay("讀取中…");
+  try{
+    const u=syUrl+(syUrl.indexOf("?")<0?"?":"&")+"act=pull&user="+encodeURIComponent(syUser)+"&t="+Date.now();
+    const r=await fetch(u);
+    const o=await r.json();
+    if(!o||!o.ok) throw new Error((o&&o.err)||"pull");
+    const rows=recClean(o.rows);
+
+    if(!manual){
+      /* 開 App 時只在本機是空的才自動接回來——換手機、重灌的情境。
+         本機已經有東西就一律不動它，避免把還沒上傳的蓋掉。 */
+      if(!logs.length && rows.length){
+        syAdopt(rows);
+        sySay("已從雲端接回 "+rows.length+" 筆",1);
+      } else if(syPend) syPush(1);
+      else if(rows.length!==logs.length) sySay("雲端 "+rows.length+" 筆 · 這台 "+logs.length+" 筆，不一致",0);
+      else sySay("已同步 · 雲端 "+rows.length+" 筆",1);
+      return;
+    }
+    if(!rows.length){ sySay("雲端沒有「"+syUser+"」的紀錄",0); return; }
+    if(!confirm("雲端有 "+rows.length+" 筆。讀回來會「取代」這台手機目前的 "+logs.length+" 筆，確定嗎？")) { syPaint(); return; }
+    syAdopt(rows);
+    sySay("已讀回 "+rows.length+" 筆",1);
+  }catch(_){
+    sySay(manual?"連不上雲端，檢查網路或同步網址":"連不上雲端，先用這台的紀錄",0);
+  }
+}
+
+/* 記帳有任何變動就排一次上傳。壓 1.5 秒是為了讓連續修改併成一次請求 */
+function syQueue(){
+  if(!syOnCfg()||syQuiet) return;
+  syMark(true); sySay("準備上傳…");
+  clearTimeout(syTimer);
+  syTimer=setTimeout(()=>syPush(1),1500);
+}
+onLogChange=syQueue;
+
+syCfg.addEventListener("click",()=>{
+  const on=syForm.hidden;
+  syForm.hidden=!on;
+  if(on){ syUrlIn.value=syUrl; syUserIn.value=syUser; }
+});
+sySave.addEventListener("click",()=>{
+  const u=syUrlIn.value.trim(), n=syUserIn.value.trim();
+  if(!/^https:\/\/script\.google\.com\/.+\/exec$/.test(u)){ sySay("網址要是 Apps Script 的部署網址，結尾 /exec",0); syUrlIn.focus(); return; }
+  if(!n){ sySay("代號不能空白",0); syUserIn.focus(); return; }
+  syUrl=u; syUser=n;
+  try{ localStorage.setItem("syncUrl",u); localStorage.setItem("syncUser",n); }catch(_){}
+  syForm.hidden=true; syPaint();
+  /* 剛接上時先看雲端有什麼：本機空的就接回來，有東西就把本機推上去 */
+  logs.length ? syPush(0) : syPull(0);
+});
+syOff.addEventListener("click",()=>{
+  if(!confirm("關閉同步只是不再上傳，這支手機的紀錄和雲端上的都不會被刪掉。確定嗎？")) return;
+  syUrl=""; syUser=""; syMark(false);
+  try{ localStorage.removeItem("syncUrl"); localStorage.removeItem("syncUser"); }catch(_){}
+  syForm.hidden=true; syPaint();
+});
+syUp.addEventListener("click",()=>syPush(0));
+syDown.addEventListener("click",()=>syPull(1));
+addEventListener("online",()=>{ if(syPend) syPush(1); });
+
+syPaint();
+if(syOnCfg()) syPull(0);
 
 /* ══ 手動更新 ══
    PWA 加到桌面後沒有網址列可以重新整理，這顆按鈕強制抓最新版。

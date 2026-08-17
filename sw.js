@@ -1,7 +1,7 @@
 /* 首爾七日 — offline cache
    改版行程後把 VERSION 加一，使用者下次連網開啟就會自動更新。 */
 
-const VERSION = "seoul-v62";
+const VERSION = "seoul-v63";
 
 const SHELL = [
   "./",
@@ -38,8 +38,11 @@ self.addEventListener("fetch", e => {
 
   const url = new URL(req.url);
 
-  /* 天氣與匯率：只走網路，斷網就讓它失敗，頁面會自行處理 */
-  if (url.hostname === "api.open-meteo.com" || url.hostname === "open.er-api.com") return;
+  /* 天氣、匯率、雲端同步：只走網路，斷網就讓它失敗，頁面會自行處理 */
+  if (url.hostname === "api.open-meteo.com" ||
+      url.hostname === "open.er-api.com" ||
+      url.hostname === "script.google.com" ||
+      url.hostname === "script.googleusercontent.com") return;
 
   /* 頁面本身：優先用網路拿最新版，斷網時回快取 */
   if (req.mode === "navigate") {

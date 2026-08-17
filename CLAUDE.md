@@ -11,6 +11,8 @@
 - `sw.js` — service worker，離線快取
 - `icon-*.png` / `apple-touch-icon.png` — App icon
 - `fonts/ChenYuluoyan-2.0-Thin.woff2` — 自訂字體（辰宇落雁體 2.0 Thin）
+- `apps-script.gs` — 記帳雲端同步的後端，貼到 Google 試算表的 Apps Script 用。**不是網站的一部分**
+- `SYNC.md` — 上面那支程式的設定步驟（給使用者照著做）
 
 ## 四個分頁
 
@@ -58,16 +60,32 @@
 
 ## localStorage 鍵
 
-`bagChecked`（行李勾選）、`expenses`（記帳）、`fxKRWTWD`（最後一次匯率）。
-**各裝置獨立，不會同步**——同行的人各自勾各自的。
+`bagChecked`（行李勾選）、`expenses`（記帳）、`fxKRWTWD`（最後一次匯率）、
+`syncUrl` / `syncUser` / `syncPend`（雲端同步設定與待上傳旗標）。
 
+行李勾選**各裝置獨立**，同行的人各自勾各自的。
 改版、換 `sw.js` 版本號都不會動到 localStorage；會清掉的是「清除瀏覽器資料」、刪掉 App、換手機。
-記帳頁底部有 `.bk` 備份區塊：匯出成 JSON（優先叫系統分享，退回下載，再退回剪貼簿），匯入會**整包取代**現有紀錄。
+
+## 記帳備份與雲端同步
+
+記帳頁底部 `.bk` 區塊分兩層：
+
+- **BACKUP** — 匯出 JSON（優先叫系統分享，退回下載，再退回剪貼簿），匯入會**整包取代**現有紀錄
+- **CLOUD SYNC** — Google Apps Script + 試算表（設定步驟見 `SYNC.md`）
+
+同步的設計前提：
+
+- 每列帶一個「代號」（`syncUser`）。push 只刪掉並重寫自己代號的列，不同人的帳不會互相蓋掉
+- **本機 localStorage 永遠是主力**。沒網路照記，`syncPend` 記著待上傳，`online` 事件或下次變動時補推
+- 任何寫入都會經過 `logSave()` → `onLogChange` hook → `syQueue()`，debounce 1.5 秒。**新增會改動 `logs` 的地方時不用另外接同步**，走 `logSave()` 就好
+- 從雲端讀回來的資料用 `syAdopt()`，它會把 `syQuiet` 打開，避免剛拉下來的東西又被推回去
+- 開 App 時只有**本機是空的**才自動接回雲端資料（重灌／換手機的情境）；本機有資料就不動它，只在筆數不一致時提示
+- 用 `text/plain` 送 POST 是刻意的：`application/json` 會觸發 preflight，Apps Script 不處理 OPTIONS
 
 ## 外部 API
 
-- 天氣 `api.open-meteo.com`、匯率 `open.er-api.com`
-- 兩者在 `sw.js` 的 fetch handler 裡**直接 return 走網路**，不進快取。新增類似 API 要記得加進那個例外，否則會被鎖在舊資料
+- 天氣 `api.open-meteo.com`、匯率 `open.er-api.com`、雲端同步 `script.google.com`（會 302 到 `script.googleusercontent.com`，兩個都要放行）
+- 這些在 `sw.js` 的 fetch handler 裡**直接 return 走網路**，不進快取。新增類似 API 要記得加進那個例外，否則會被鎖在舊資料
 - 匯率抓不到時退回 `localStorage` 的舊值並標示日期；完全沒有時，記帳的台幣選項會自動鎖住
 
 ## 重要規則：改動後一定要做的事
