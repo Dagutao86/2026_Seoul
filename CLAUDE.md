@@ -61,6 +61,9 @@
 `bagChecked`（行李勾選）、`expenses`（記帳）、`fxKRWTWD`（最後一次匯率）。
 **各裝置獨立，不會同步**——同行的人各自勾各自的。
 
+改版、換 `sw.js` 版本號都不會動到 localStorage；會清掉的是「清除瀏覽器資料」、刪掉 App、換手機。
+記帳頁底部有 `.bk` 備份區塊：匯出成 JSON（優先叫系統分享，退回下載，再退回剪貼簿），匯入會**整包取代**現有紀錄。
+
 ## 外部 API
 
 - 天氣 `api.open-meteo.com`、匯率 `open.er-api.com`

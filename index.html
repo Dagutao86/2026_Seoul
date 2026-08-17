@@ -542,6 +542,17 @@ body::after{
   font-family:var(--f-mono);font-size:11px;letter-spacing:.16em;
   color:var(--ink-3);margin-top:calc(var(--u)*4);
 }
+/* 備份：紀錄只在本機，換手機或清資料就沒了，留一個匯出／匯入的出口 */
+.bk{margin-top:calc(var(--u)*6);padding-top:calc(var(--u)*3);border-top:1px solid var(--line-2)}
+.bk h4{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.3em;color:var(--jade);font-weight:400}
+.bk-p{font-family:var(--f-title);font-size:16px;color:var(--ink-3);line-height:1.85;margin-top:calc(var(--u)*1.5)}
+.bk-row{display:flex;gap:calc(var(--u)*1.5);margin-top:calc(var(--u)*2)}
+.bk-msg{
+  font-family:var(--f-mono);font-size:10px;letter-spacing:.1em;
+  color:var(--ink-3);line-height:1.7;margin-top:calc(var(--u)*1.5);min-height:14px;
+}
+.bk-msg.ok{color:var(--jade)}
+.bk-msg.warn{color:var(--vermilion)}
 .upd-msg{
   font-family:var(--f-mono);font-size:10px;letter-spacing:.1em;
   color:var(--ink-3);text-align:right;line-height:1.7;
@@ -807,6 +818,16 @@ body::after{
      <button class="log-tab" id="tabCat" role="tab" aria-selected="false" type="button">依分類</button>
    </div>
    <div id="logList"></div>
+   <div class="bk">
+     <h4>BACKUP</h4>
+     <p class="bk-p">記帳只存在這支手機裡。出門前後各匯出一次存到雲端硬碟或傳給自己，換手機、重灌、誤刪 App 都救得回來。</p>
+     <div class="bk-row">
+       <button class="btn" id="bkOut" type="button">匯出備份</button>
+       <button class="btn" id="bkIn" type="button">匯入備份</button>
+     </div>
+     <div class="bk-msg" id="bkMsg"></div>
+     <input id="bkFile" type="file" accept="application/json,.json" hidden>
+   </div>
  </section>
 
 </div>
@@ -1588,6 +1609,62 @@ logList.addEventListener("click",e=>{
 });
 
 logRender();
+
+/* ══ 記帳備份 ══
+   localStorage 只在這台裝置上，清瀏覽器資料／換手機就沒了。
+   匯出成一個 JSON 檔自己收好，回來用匯入蓋回去。 */
+const bkOut=document.getElementById("bkOut"), bkIn=document.getElementById("bkIn"),
+      bkFile=document.getElementById("bkFile"), bkMsg=document.getElementById("bkMsg");
+
+const bkSay=(t,ok)=>{ bkMsg.textContent=t; bkMsg.className="bk-msg"+(t?(ok?" ok":" warn"):""); };
+
+bkOut.addEventListener("click",async()=>{
+  if(!logs.length){ bkSay("還沒有紀錄可以備份",0); return; }
+  const txt=JSON.stringify({app:"seoul-2026",v:1,at:new Date().toISOString(),expenses:logs});
+  const name="seoul-expenses-"+new Date().toISOString().slice(0,10)+".json";
+
+  /* 手機優先叫系統分享，才能直接丟進雲端硬碟或傳給自己；桌機退回下載 */
+  try{
+    const f=new File([txt],name,{type:"application/json"});
+    if(navigator.canShare && navigator.canShare({files:[f]})){
+      await navigator.share({files:[f],title:"首爾記帳備份"});
+      bkSay("已送出 "+logs.length+" 筆",1); return;
+    }
+  }catch(err){
+    if(err && err.name==="AbortError"){ bkSay(""); return; }  /* 使用者自己取消，不算失敗 */
+  }
+  try{
+    const url=URL.createObjectURL(new Blob([txt],{type:"application/json"}));
+    const a=document.createElement("a"); a.href=url; a.download=name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),4000);
+    bkSay("已下載 "+name,1); return;
+  }catch(_){}
+  /* 兩條路都走不通，至少讓內容進剪貼簿 */
+  try{ await navigator.clipboard.writeText(txt); bkSay("已複製備份內容，貼到記事本存起來",1); }
+  catch(_){ bkSay("這個瀏覽器不支援匯出",0); }
+});
+
+bkIn.addEventListener("click",()=>{ bkFile.value=""; bkFile.click(); });
+bkFile.addEventListener("change",async()=>{
+  const f=bkFile.files&&bkFile.files[0]; if(!f) return;
+  try{
+    const o=JSON.parse(await f.text());
+    const arr=Array.isArray(o)?o:(o&&Array.isArray(o.expenses)?o.expenses:null);
+    if(!arr) throw new Error("format");
+    /* 逐筆過濾重建，壞掉的欄位不要帶進來 */
+    const clean=arr.filter(x=>x&&typeof x==="object"&&isFinite(+x.a)&&+x.a>0).map(x=>{
+      const r={d:isFinite(+x.d)?+x.d:0,c:CATS.includes(x.c)?x.c:"其他",n:String(x.n||""),a:Math.round(+x.a)};
+      if(isFinite(+x.nt)&&+x.nt>0) r.nt=Math.round(+x.nt);
+      return r;
+    });
+    if(!clean.length){ bkSay("這個檔裡沒有可用的紀錄",0); bkFile.value=""; return; }
+    if(!confirm("備份裡有 "+clean.length+" 筆。匯入會「取代」目前的 "+logs.length+" 筆，確定嗎？")){ bkFile.value=""; bkSay(""); return; }
+    logs=clean; editReset(); logSave(); logRender();
+    bkSay("已匯入 "+clean.length+" 筆",1);
+  }catch(_){ bkSay("讀不到這個檔，請確認是本 App 匯出的備份",0); }
+  bkFile.value="";
+});
 
 /* ══ 手動更新 ══
    PWA 加到桌面後沒有網址列可以重新整理，這顆按鈕強制抓最新版。
