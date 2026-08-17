@@ -460,6 +460,97 @@ body::after{
 .mini-pad .calc-k.op,.mini-pad .calc-k.eq{font-size:16.5px}
 .mini-pad .calc-k.fn{font-size:13.5px}
 
+/* ══ 成員 ══ 共用帳本，每筆記錄誰付的、誰分攤 */
+.mem-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:var(--u);margin-top:calc(var(--u)*2.5);
+}
+.mem-who{font-family:var(--f-title);font-size:16.5px;color:var(--ink-3)}
+.mem-who b{font-family:var(--f-title);font-weight:700;color:var(--jade)}
+.mem-who b.none{color:var(--vermilion)}
+.mem-panel{
+  margin-top:calc(var(--u)*2);padding:calc(var(--u)*2) 0;
+  border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+}
+.mem-panel[hidden]{display:none}
+.mem-r{display:flex;align-items:center;gap:var(--u);padding:calc(var(--u)*.75) 0}
+.mem-sel{
+  flex:1 1 auto;text-align:left;appearance:none;background:none;border:none;cursor:pointer;
+  font-family:var(--f-title);font-size:19.5px;color:var(--ink-2);padding:0;
+}
+/* 空心／實心方塊表示「我是誰」，跟行李清單的勾選盒同一套語彙 */
+.mem-sel::before{
+  content:"";display:inline-block;width:9px;height:9px;margin-right:9px;
+  border:1px solid var(--line-2);vertical-align:middle;
+}
+.mem-r.me .mem-sel{color:var(--jade);font-weight:700}
+.mem-r.me .mem-sel::before{background:var(--jade);border-color:var(--jade)}
+.mem-b{
+  flex:0 0 auto;appearance:none;cursor:pointer;
+  border:1px solid var(--line-2);background:var(--paper-2);
+  font-family:var(--f-mono);font-size:10px;letter-spacing:.1em;
+  color:var(--ink-3);padding:3px 7px;transition:background .2s,color .2s,border-color .2s;
+}
+.mem-b:hover,.mem-b:active{background:var(--vermilion);color:#fff;border-color:var(--vermilion)}
+.mem-panel .log-row{margin-top:calc(var(--u)*2)}
+
+/* 分攤人：可切換的膠囊，預設全選 */
+.sh-row{display:flex;align-items:flex-start;gap:calc(var(--u)*1.5);margin-top:calc(var(--u)*2.25)}
+/* .sh-row 的 display:flex 特異性高過 UA 的 [hidden]，要自己關掉 */
+.sh-row[hidden]{display:none}
+.sh-k{
+  flex:0 0 auto;font-family:var(--f-title);font-size:19.5px;
+  color:var(--ink-2);padding-top:2px;
+}
+.sh-chips{flex:1 1 auto;display:flex;flex-wrap:wrap;gap:5px;align-items:flex-start}
+.sh-c{
+  appearance:none;cursor:pointer;border:1px solid var(--line-2);background:var(--paper-3);
+  font-family:var(--f-title);font-size:15.5px;color:var(--ink-3);padding:2px 10px;
+  transition:background .2s,color .2s,border-color .2s;
+}
+.sh-c.on{background:var(--jade);border-color:var(--jade);color:#fff}
+.sh-all{
+  appearance:none;cursor:pointer;border:1px solid var(--line-2);background:var(--paper-2);
+  font-family:var(--f-mono);font-size:10px;letter-spacing:.1em;color:var(--ink-3);padding:3px 7px;
+}
+
+/* ══ 結算 ══ */
+.bal-r{margin-top:calc(var(--u)*2.75)}
+.bal-top{display:flex;justify-content:space-between;align-items:baseline;gap:var(--u)}
+.bal-n{font-family:var(--f-title);font-size:19.5px;color:var(--ink)}
+.bal-n em{font-family:var(--f-mono);font-style:normal;font-size:9.5px;letter-spacing:.14em;color:var(--jade);margin-left:7px}
+.bal-v{font-family:var(--f-disp);font-size:19.5px;white-space:nowrap}
+.bal-v.plus{color:var(--jade)}
+.bal-v.minus{color:var(--vermilion)}
+.bal-v.zero{color:var(--ink-3)}
+.bal-bar{height:3px;background:var(--paper-3);margin-top:7px}
+.bal-bar span{display:block;height:100%}
+.bal-bar span.plus{background:var(--jade)}
+.bal-bar span.minus{background:var(--vermilion)}
+.bal-note{
+  font-family:var(--f-mono);font-size:10px;letter-spacing:.1em;
+  color:var(--ink-3);line-height:1.8;margin-top:calc(var(--u)*1.5);
+}
+.st-r{
+  border:1px solid var(--line);border-left:2px solid var(--gold);
+  background:var(--paper-2);padding:calc(var(--u)*1.75) calc(var(--u)*2);
+  margin-top:calc(var(--u)*2);
+}
+.st-t{font-family:var(--f-title);font-size:19.5px;color:var(--ink);line-height:1.7}
+.st-t b{font-family:var(--f-disp);font-weight:400;color:var(--vermilion)}
+.st-t i{font-style:normal;font-weight:700}
+.st-a{margin-top:calc(var(--u)*1.5)}
+.bal-ok{
+  font-family:var(--f-mono);font-size:11px;letter-spacing:.16em;
+  color:var(--jade);margin-top:calc(var(--u)*3);line-height:1.8;
+}
+.pay-r{
+  display:flex;align-items:baseline;gap:var(--u);
+  padding:calc(var(--u)*1.25) 0;border-bottom:1px solid var(--line);
+}
+.pay-t{flex:1 1 auto;font-family:var(--f-title);font-size:17px;color:var(--ink-2)}
+.pay-a{flex:0 0 auto;font-family:var(--f-disp);font-size:17px;color:var(--jade)}
+
 .log-tabs{display:flex;gap:calc(var(--u)*2.5);margin-top:calc(var(--u)*4)}
 .log-tab{
   appearance:none;background:none;border:none;cursor:pointer;padding:0 0 5px;
@@ -789,12 +880,28 @@ body::after{
        <span class="log-tot-k" id="logSum">₩0</span>
        <span class="log-tot-t" id="logSumTwd">≈ NT$0</span>
      </div>
+     <div class="mem-bar">
+       <span class="mem-who">我是 <b id="memWho">—</b></span>
+       <button class="btn" id="memBtn" type="button">成員</button>
+     </div>
+     <div class="mem-panel" id="memPanel" hidden>
+       <div id="memRows"></div>
+       <div class="bk-msg" id="memMsg"></div>
+       <div class="log-row">
+         <input id="memNew" type="text" placeholder="新成員名字" aria-label="新成員名字">
+         <button class="btn" id="memAdd" type="button">加入</button>
+       </div>
+       <p class="bk-p">點名字前面的方塊設定「我是誰」。成員清單跟記帳都是同步的，同行的人看到同一份。</p>
+     </div>
    </header>
    <div class="log-form">
      <div class="log-tip" id="logTip" hidden>編輯中 · 改完按「更新」</div>
      <div class="log-row">
        <select id="logDay" aria-label="第幾天"></select>
        <select id="logCat" aria-label="分類"></select>
+     </div>
+     <div class="log-row">
+       <select id="logBy" aria-label="付款人"></select>
      </div>
      <div class="log-row">
        <select id="logCur" aria-label="幣別">
@@ -831,6 +938,10 @@ body::after{
          <button class="calc-k" data-n="." type="button">.</button>
        </div>
      </div>
+     <div class="sh-row" id="shRow">
+       <span class="sh-k">分攤</span>
+       <div class="sh-chips" id="shChips"></div>
+     </div>
      <div class="log-row">
        <input id="logNote" type="text" placeholder="項目（可留空）" aria-label="項目">
        <button class="btn" id="logCancel" type="button" hidden>取消</button>
@@ -840,6 +951,7 @@ body::after{
    <div class="log-tabs" role="tablist" aria-label="統計方式">
      <button class="log-tab" id="tabDay" role="tab" aria-selected="true" type="button">依日期</button>
      <button class="log-tab" id="tabCat" role="tab" aria-selected="false" type="button">依分類</button>
+     <button class="log-tab" id="tabBal" role="tab" aria-selected="false" type="button">結算</button>
    </div>
    <div id="logList"></div>
    <div class="bk">
@@ -854,20 +966,17 @@ body::after{
 
      <h4 class="bk-h2">CLOUD SYNC</h4>
      <div class="bk-msg" id="syMsg"></div>
-     <div class="sy-id" id="syId" hidden>代號 <b id="syIdV"></b></div>
      <div class="bk-row">
-       <button class="btn" id="syCfg" type="button">改代號</button>
-       <button class="btn" id="syUp" type="button" hidden>立即上傳</button>
-       <button class="btn" id="syDown" type="button" hidden>從雲端讀回</button>
+       <button class="btn" id="syNow" type="button" hidden>立即同步</button>
+       <button class="btn" id="syCfg" type="button">設定</button>
      </div>
      <div class="sy-form" id="syForm" hidden>
        <input id="syUrlIn" type="url" inputmode="url" autocapitalize="off" spellcheck="false" placeholder="同步網址（結尾是 /exec）" aria-label="同步網址">
-       <input id="syUserIn" type="text" autocapitalize="off" spellcheck="false" placeholder="你的代號" aria-label="你的代號">
        <div class="bk-row">
          <button class="btn" id="sySave" type="button">儲存</button>
          <button class="btn" id="syOffBtn" type="button">關閉同步</button>
        </div>
-       <p class="bk-p">上面那組代號就是找回資料的鑰匙——換手機時填一樣的代號就能把紀錄讀回來，建議抄下來。同一個代號只在一支手機上用，不然兩台會互相蓋掉。</p>
+       <p class="bk-p">開這個網站的人自動共用同一本帳，不用輸入任何東西。換手機、重灌都會自己接回來，回來之後只要重新點一次「我是誰」。關閉同步只停止上傳，不刪任何資料。</p>
      </div>
    </div>
  </section>
@@ -1449,18 +1558,35 @@ function calcPaint(){
 bindPad(calcPadEl,cEng,calcPaint);
 calcPaint();
 
-/* ══ 記帳 ══ 依天數分組，存 localStorage */
+/* ══ 記帳 ══ 共用帳本
+   同一個網站的人共用同一本帳（GROUP_ID 寫死）。每筆記錄「誰付的」與「誰分攤」，
+   結算頁再算出誰欠誰多少。每筆帶唯一 id 與 at 時間戳，同步時按 id 合併、at 大的贏，
+   所以兩支手機同時記帳不會互相抹掉。刪除是留墓碑（del:1）而不是真的移除，
+   不然對方下次同步會把它復活。 */
 const CATS=["餐飲","衣服","超商","藥局","Olive Young","美容","交通","娛樂","住宿","其他"];
+const GROUP_ID="seoul2026";
 
 const logDay=document.getElementById("logDay"), logCat=document.getElementById("logCat"),
+      logBy=document.getElementById("logBy"),
       logCur=document.getElementById("logCur"), logAmt=document.getElementById("logAmt"),
       logNote=document.getElementById("logNote"), logAdd=document.getElementById("logAdd"),
       logCancel=document.getElementById("logCancel"), logTip=document.getElementById("logTip"),
       logList=document.getElementById("logList"), logSum=document.getElementById("logSum"),
       logSumTwd=document.getElementById("logSumTwd"),
-      tabDay=document.getElementById("tabDay"), tabCat=document.getElementById("tabCat");
+      tabDay=document.getElementById("tabDay"), tabCat=document.getElementById("tabCat"),
+      tabBal=document.getElementById("tabBal"),
+      memWho=document.getElementById("memWho"), memBtn=document.getElementById("memBtn"),
+      memPanel=document.getElementById("memPanel"), memRows=document.getElementById("memRows"),
+      memMsg=document.getElementById("memMsg"), memNew=document.getElementById("memNew"),
+      memAddB=document.getElementById("memAdd"),
+      shRow=document.getElementById("shRow"), shChips=document.getElementById("shChips");
 
-let logs=(()=>{ try{ return JSON.parse(localStorage.getItem("expenses")||"[]"); }catch(_){ return []; } })();
+const jread=(k,d)=>{ try{ const v=JSON.parse(localStorage.getItem(k)||"null"); return v==null?d:v; }catch(_){ return d; } };
+
+let logs=jread("expenses",[]);
+let mems=jread("members",[]);
+let me=localStorage.getItem("meId")||"";
+
 /* 每次寫入都通知雲端同步。用可替換的 hook 而不是直接呼叫，
    同步那段程式碼寫在後面，這裡不會踩到宣告順序 */
 let onLogChange=null;
@@ -1468,9 +1594,29 @@ const logSave=()=>{
   try{ localStorage.setItem("expenses",JSON.stringify(logs)); }catch(_){}
   if(onLogChange) onLogChange();
 };
+const memSave=()=>{
+  try{ localStorage.setItem("members",JSON.stringify(mems)); }catch(_){}
+  if(onLogChange) onLogChange();
+};
+const meSave=()=>{ try{ localStorage.setItem("meId",me); }catch(_){} };
+
 let logMode="day";
-/* 正在編輯的紀錄在 logs 裡的索引；null 表示現在是新增模式 */
-let editIdx=null;
+/* 正在編輯的紀錄 id；null 表示現在是新增模式。
+   用 id 而不是陣列索引——合併與墓碑會讓索引位移。 */
+let editId=null;
+let shSel=new Set();
+
+/* id 要跨裝置唯一，時間戳加隨機碼就夠了 */
+const rid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+
+const memLive=()=>mems.filter(m=>!m.del);
+const memName=id=>{ const m=mems.find(x=>x.id===id); return m?m.n:(id?"（已移除）":"—"); };
+const expLive=()=>logs.filter(x=>!x.del&&x.t!=="pay");
+const payLive=()=>logs.filter(x=>!x.del&&x.t==="pay");
+const recById=id=>logs.find(x=>x.id===id);
+/* 分攤人沒填的（升級前的舊紀錄）就當付款人自己全額吃下 */
+const shareOf=e=>(e.sh&&e.sh.length)?e.sh:(e.by?[e.by]:[]);
+const myShare=e=>{ const sh=shareOf(e); return (me&&sh.indexOf(me)>=0)?e.a/sh.length:0; };
 
 /* Day 0 收行前花費（機票、接送、行前採買） */
 const LOG_DAYS=[{n:0,date:"行前"}].concat(DAYS.map(d=>({n:d.n,date:d.date})));
@@ -1489,38 +1635,189 @@ const catOf=e=>CATS.includes(e.c)?e.c:"其他";
 
 /* 從備份檔或雲端讀進來的東西一律重建一遍，壞掉的欄位不要帶進 logs */
 function recClean(arr){
-  if(!Array.isArray(arr)) return [];
-  return arr.filter(x=>x&&typeof x==="object"&&isFinite(+x.a)&&+x.a>0).map(x=>{
-    const r={d:isFinite(+x.d)?+x.d:0,c:CATS.includes(x.c)?x.c:"其他",n:String(x.n||""),a:Math.round(+x.a)};
+  const out=[];
+  (Array.isArray(arr)?arr:[]).forEach(x=>{
+    if(!x||typeof x!=="object") return;
+    const del=x.del?1:0, a=Math.round(+x.a||0);
+    if(!del && !(a>0)) return;              /* 活著的紀錄一定要有金額 */
+    const id=String(x.id||"").trim()||rid();
+    const at=isFinite(+x.at)?+x.at:0;
+    if(x.t==="pay"){
+      const by=String(x.by||""), to=String(x.to||"");
+      if(!by||!to) return;
+      const r={id,t:"pay",by,to,a,at}; if(del) r.del=1;
+      out.push(r); return;
+    }
+    const r={id,d:isFinite(+x.d)?+x.d:0,c:CATS.includes(x.c)?x.c:"其他",
+             n:String(x.n||""),a,at};
     if(isFinite(+x.nt)&&+x.nt>0) r.nt=Math.round(+x.nt);
-    return r;
+    if(x.by) r.by=String(x.by);
+    if(Array.isArray(x.sh)) r.sh=x.sh.map(String).filter(Boolean);
+    if(del) r.del=1;
+    out.push(r);
   });
+  return out;
+}
+function memClean(arr){
+  const out=[];
+  (Array.isArray(arr)?arr:[]).forEach(x=>{
+    if(!x||typeof x!=="object") return;
+    const id=String(x.id||"").trim(); if(!id) return;
+    const r={id,n:String(x.n||"").trim()||id,at:isFinite(+x.at)?+x.at:0};
+    if(x.del) r.del=1;
+    out.push(r);
+  });
+  return out;
+}
+/* 按 id 合併，at 大的贏。同一筆在兩支手機各改過一次時，晚改的那次留下來 */
+function mergeById(local,remote){
+  const m=new Map();
+  local.forEach(x=>m.set(x.id,x));
+  remote.forEach(x=>{
+    const o=m.get(x.id);
+    if(!o||(x.at||0)>(o.at||0)) m.set(x.id,x);
+  });
+  return [...m.values()];
+}
+
+/* ── 升級遷移 ──
+   個人帳本時代的紀錄沒有 id／at／付款人。id 與 at 現在就補；
+   付款人要等使用者選好「我是誰」才知道要掛給誰，交給 claimOrphans()。 */
+(function migrate(){
+  let dirty=false;
+  logs=recClean(logs); mems=memClean(mems);
+  logs.forEach(x=>{ if(!x.at){ x.at=Date.now(); dirty=true; } });
+  /* 舊版的同步代號就是使用者自己取的名字，直接拿來當第一個成員 */
+  if(!mems.length){
+    const old=(localStorage.getItem("syncUser")||"").trim();
+    if(old){ const id=rid(); mems=[{id,n:old,at:Date.now()}]; me=me||id; meSave(); memSave(); }
+  }
+  if(dirty) try{ localStorage.setItem("expenses",JSON.stringify(logs)); }catch(_){}
+})();
+
+/* 升級前的紀錄沒有付款人。選好「我是誰」之後一次補成「我付、我自己分攤」，
+   維持升級前看到的數字不變。 */
+function claimOrphans(){
+  if(!me) return false;
+  let dirty=false;
+  logs.forEach(x=>{
+    if(x.t==="pay"||x.del) return;
+    if(!x.by){ x.by=me; x.sh=[me]; x.at=Date.now(); dirty=true; }
+  });
+  return dirty;
+}
+/* 舊版代號已經在 migrate() 裡變成第一個成員，那些沒主人的紀錄現在就能歸位 */
+if(claimOrphans()) logSave();
+
+/* ── 結算 ──
+   每筆消費：付款人先墊了全額，分攤人各欠一份。
+   還款紀錄（t:"pay"）反向沖銷。加總永遠是零和。 */
+function balances(){
+  const b={};
+  const touch=id=>{ if(id&&b[id]===undefined) b[id]=0; };
+  memLive().forEach(m=>{ b[m.id]=0; });
+  expLive().forEach(e=>{
+    touch(e.by); shareOf(e).forEach(touch);
+    const sh=shareOf(e); if(!sh.length) return;
+    const per=e.a/sh.length;
+    if(e.by) b[e.by]+=e.a;
+    sh.forEach(p=>{ b[p]-=per; });
+  });
+  payLive().forEach(p=>{ touch(p.by); touch(p.to); b[p.by]+=p.a; b[p.to]-=p.a; });
+  return b;
+}
+/* 貪婪法：每次讓最該收錢的人跟最該付錢的人對沖。
+   轉帳次數最多是人數 −1，實務上各家分帳 App 用的就是這個。 */
+function settle(b){
+  const cr=[],db=[];
+  Object.keys(b).forEach(id=>{
+    const v=Math.round(b[id]);
+    if(v>=1) cr.push({id,v}); else if(v<=-1) db.push({id,v:-v});
+  });
+  cr.sort((x,y)=>y.v-x.v); db.sort((x,y)=>y.v-x.v);
+  const out=[]; let i=0,j=0;
+  while(i<db.length&&j<cr.length){
+    const amt=Math.min(db[i].v,cr[j].v);
+    if(amt>=1) out.push({from:db[i].id,to:cr[j].id,a:amt});
+    db[i].v-=amt; cr[j].v-=amt;
+    if(db[i].v<1) i++;
+    if(cr[j].v<1) j++;
+  }
+  return out;
 }
 
 function viewByDay(){
-  const by={};
-  logs.forEach((e,i)=>{ (by[e.d]=by[e.d]||[]).push({...e,i}); });
+  const by={}, multi=memLive().length>1;
+  expLive().forEach(e=>{ (by[e.d]=by[e.d]||[]).push(e); });
   return LOG_DAYS.map(d=>{
     const items=by[d.n]; if(!items||!items.length) return "";
     const sub=items.reduce((s,x)=>s+x.a,0);
     return `<section class="log-sec">
       <div class="log-h"><span class="log-d">DAY ${d.n} · ${esc(d.date)}</span><span class="log-sub">₩${nfmt(sub)}${RATE==null?"":`<em class="log-sub-t">${twdText(sub)}</em>`}</span></div>
-      ${items.map(x=>`<div class="log-r${editIdx===x.i?" editing":""}">
+      ${items.map(x=>{
+        const sh=shareOf(x), per=sh.length?x.a/sh.length:0, bits=[];
+        if(multi&&x.by) bits.push(memName(x.by)+" 付");
+        if(multi&&sh.length>1) bits.push("分 "+sh.length+" 人 · 每人 ₩"+nfmt(per));
+        if(x.nt) bits.push("輸入 NT$"+nfmt(x.nt));
+        return `<div class="log-r${editId===x.id?" editing":""}">
         <span class="log-c">${esc(catOf(x))}</span>
-        <span class="log-n">${esc(x.n||"—")}${x.nt?`<em class="log-o">輸入 NT$${nfmt(x.nt)}</em>`:""}</span>
+        <span class="log-n">${esc(x.n||"—")}${bits.length?`<em class="log-o">${esc(bits.join(" · "))}</em>`:""}</span>
         <span class="log-a">₩${nfmt(x.a)}</span>
         <span class="log-acts">
-          <button class="log-edit" data-e="${x.i}" type="button" tabindex="-1">編輯</button>
-          <button class="log-del" data-i="${x.i}" type="button" tabindex="-1">刪除</button>
+          <button class="log-edit" data-e="${esc(x.id)}" type="button" tabindex="-1">編輯</button>
+          <button class="log-del" data-i="${esc(x.id)}" type="button" tabindex="-1">刪除</button>
         </span>
-      </div>`).join("")}
+      </div>`;}).join("")}
     </section>`;
   }).join("");
 }
 
+function viewBal(){
+  if(!memLive().length) return '<div class="log-empty">先在上面「成員」加入同行的人，才能結算</div>';
+  const b=balances();
+  const ids=Object.keys(b).sort((x,y)=>b[y]-b[x]);
+  const max=Math.max(1,...ids.map(i=>Math.abs(b[i])));
+  const rows=ids.map(id=>{
+    const v=Math.round(b[id]), cls=v>=1?"plus":v<=-1?"minus":"zero";
+    return `<div class="bal-r">
+      <div class="bal-top">
+        <span class="bal-n">${esc(memName(id))}${id===me?"<em>ME</em>":""}</span>
+        <span class="bal-v ${cls}">${v>=1?"+":v<=-1?"−":""}₩${nfmt(Math.abs(v))}</span>
+      </div>
+      <div class="bal-bar"><span class="${cls}" style="width:${Math.round(Math.abs(b[id])/max*100)}%"></span></div>
+    </div>`;
+  }).join("");
+  const tr=settle(b);
+  const st=tr.length
+    ? tr.map(t=>`<div class="st-r">
+        <div class="st-t"><i>${esc(memName(t.from))}</i> 要付給 <i>${esc(memName(t.to))}</i> <b>₩${nfmt(t.a)}</b></div>
+        ${RATE==null?"":`<div class="bal-note">≈ NT$${nfmt(t.a*RATE)}</div>`}
+        <div class="st-a"><button class="btn" data-pf="${esc(t.from)}" data-pt="${esc(t.to)}" data-pa="${t.a}" type="button">已付款完成</button></div>
+      </div>`).join("")
+    : '<div class="bal-ok">目前不用互相轉帳</div>';
+  const ps=payLive().slice().sort((x,y)=>(y.at||0)-(x.at||0));
+  const hist=ps.length?`<section class="log-sec">
+      <div class="log-h"><span class="log-d">已結清</span><span class="log-sub">${ps.length} 筆</span></div>
+      ${ps.map(p=>`<div class="pay-r">
+        <span class="pay-t">${esc(memName(p.by))} 已付給 ${esc(memName(p.to))}</span>
+        <span class="pay-a">₩${nfmt(p.a)}</span>
+        <button class="mem-b" data-undo="${esc(p.id)}" type="button">撤銷</button>
+      </div>`).join("")}
+    </section>`:"";
+  return `<section class="log-sec">
+    <div class="log-h"><span class="log-d">淨額</span></div>
+    ${rows}
+    <div class="bal-note">正數 = 先墊了錢、應該收回。負數 = 還要付出去。</div>
+  </section>
+  <section class="log-sec">
+    <div class="log-h"><span class="log-d">結算 · 最少轉帳次數</span></div>
+    ${st}
+  </section>${hist}`;
+}
+
 function viewByCat(){
   const by={}; let total=0;
-  logs.forEach(e=>{
+  expLive().forEach(e=>{
     const c=catOf(e);
     by[c]=by[c]||{sum:0,n:0};
     by[c].sum+=e.a; by[c].n++; total+=e.a;
@@ -1541,13 +1838,18 @@ function viewByCat(){
 }
 
 function logRender(){
-  const html = logMode==="cat" ? viewByCat() : viewByDay();
+  const html = logMode==="cat" ? viewByCat() : logMode==="bal" ? viewBal() : viewByDay();
   logList.innerHTML = html || '<div class="log-empty">還沒有紀錄</div>';
-  const total=logs.reduce((s,x)=>s+x.a,0);
+  const es=expLive(), total=es.reduce((s,x)=>s+x.a,0);
   logSum.textContent="₩"+nfmt(total);
-  logSumTwd.textContent = RATE==null ? "" : twdText(total);
-  tabDay.setAttribute("aria-selected",String(logMode!=="cat"));
+  const bits=[];
+  if(RATE!=null) bits.push(twdText(total));
+  /* 一個人的時候「我分攤」等於總額，寫出來只是噪音 */
+  if(me&&memLive().length>1) bits.push("我分攤 ₩"+nfmt(es.reduce((s,x)=>s+myShare(x),0)));
+  logSumTwd.textContent=bits.join(" · ");
+  tabDay.setAttribute("aria-selected",String(logMode==="day"));
   tabCat.setAttribute("aria-selected",String(logMode==="cat"));
+  tabBal.setAttribute("aria-selected",String(logMode==="bal"));
   /* 沒有匯率就無法換算，台幣選項先鎖住免得記錯帳 */
   const twdOpt=logCur.querySelector('option[value="TWD"]');
   if(twdOpt){
@@ -1559,6 +1861,102 @@ function logRender(){
 
 tabDay.addEventListener("click",()=>{ logMode="day"; logRender(); });
 tabCat.addEventListener("click",()=>{ logMode="cat"; logRender(); });
+tabBal.addEventListener("click",()=>{ logMode="bal"; logRender(); });
+
+/* ══ 成員 ══ */
+const memSay=(t,ok)=>{ memMsg.textContent=t; memMsg.className="bk-msg"+(t?(ok?" ok":" warn"):""); };
+const shReset=()=>{ shSel=new Set(memLive().map(m=>m.id)); };
+
+function shPaint(){
+  const ms=memLive();
+  shChips.innerHTML=ms.map(m=>
+    `<button class="sh-c${shSel.has(m.id)?" on":""}" data-sh="${esc(m.id)}" type="button">${esc(m.n)}</button>`
+  ).join("")+'<button class="sh-all" id="shAll" type="button">全選</button>';
+}
+
+function memRender(){
+  const ms=memLive();
+  memRows.innerHTML = ms.length
+    ? ms.map(m=>`<div class="mem-r${m.id===me?" me":""}">
+        <button class="mem-sel" data-pick="${esc(m.id)}" type="button">${esc(m.n)}</button>
+        <button class="mem-b" data-ren="${esc(m.id)}" type="button">改名</button>
+        <button class="mem-b" data-rm="${esc(m.id)}" type="button">移除</button>
+      </div>`).join("")
+    : '<div class="log-empty">還沒有成員。先加入你自己，再加同行的人。</div>';
+  const m=mems.find(x=>x.id===me&&!x.del);
+  memWho.textContent=m?m.n:"尚未選擇";
+  memWho.className=m?"":"none";
+
+  /* 付款人下拉跟著成員清單走，盡量保住目前選的那個 */
+  const keep=logBy.value;
+  logBy.innerHTML=ms.length
+    ? ms.map(x=>`<option value="${esc(x.id)}">${esc(x.n)} 付款</option>`).join("")
+    : '<option value="">先加成員</option>';
+  if(ms.some(x=>x.id===keep)) logBy.value=keep;
+  else if(me&&ms.some(x=>x.id===me)) logBy.value=me;
+
+  /* 已經不在清單上的人要從分攤選擇裡踢掉 */
+  [...shSel].forEach(id=>{ if(!ms.some(m2=>m2.id===id)) shSel.delete(id); });
+  if(!shSel.size) shReset();
+  shPaint();
+  shRow.hidden = ms.length<2;   /* 只有一個人就沒有分攤可言 */
+}
+
+memBtn.addEventListener("click",()=>{ memPanel.hidden=!memPanel.hidden; if(!memPanel.hidden) memSay(""); });
+
+memAddB.addEventListener("click",()=>{
+  const n=memNew.value.trim();
+  if(!n){ memNew.focus(); return; }
+  if(memLive().some(m=>m.n===n)){ memSay("已經有叫「"+n+"」的成員了",0); return; }
+  const id=rid();
+  mems.push({id,n,at:Date.now()});
+  if(!me){ me=id; meSave(); if(claimOrphans()) logSave(); }   /* 第一個加進來的人預設就是自己 */
+  shSel.add(id);
+  memNew.value="";
+  memSave(); memRender(); logRender();
+  memSay("已加入 "+n,1);
+});
+memNew.addEventListener("keydown",e=>{ if(e.key==="Enter") memAddB.click(); });
+
+memRows.addEventListener("click",e=>{
+  const pick=e.target.closest("[data-pick]");
+  if(pick){
+    me=pick.dataset.pick; meSave();
+    if(claimOrphans()) logSave();
+    memRender(); logRender();
+    memSay("已設定「"+memName(me)+"」是你",1);
+    return;
+  }
+  const ren=e.target.closest("[data-ren]");
+  if(ren){
+    const m=mems.find(x=>x.id===ren.dataset.ren); if(!m) return;
+    const n=(prompt("改成什麼名字？",m.n)||"").trim();
+    if(!n||n===m.n) return;
+    if(memLive().some(x=>x.n===n&&x.id!==m.id)){ memSay("已經有叫「"+n+"」的成員了",0); return; }
+    m.n=n; m.at=Date.now();
+    memSave(); memRender(); logRender();
+    memSay("已改名",1);
+    return;
+  }
+  const rm=e.target.closest("[data-rm]");
+  if(rm){
+    const id=rm.dataset.rm;
+    /* 有帳掛在身上的人不能移除，不然結算會少掉一邊 */
+    const used=logs.some(x=>!x.del&&(x.by===id||x.to===id||(x.sh&&x.sh.indexOf(id)>=0)));
+    if(used){ memSay("「"+memName(id)+"」已經有相關的帳，要先把那些紀錄改掉或刪掉才能移除",0); return; }
+    const m=mems.find(x=>x.id===id); if(!m) return;
+    m.del=1; m.at=Date.now();
+    if(me===id){ me=""; meSave(); }
+    memSave(); memRender(); logRender();
+    memSay("已移除",1);
+  }
+});
+
+shChips.addEventListener("click",e=>{
+  const c=e.target.closest("[data-sh]");
+  if(c){ const id=c.dataset.sh; shSel.has(id)?shSel.delete(id):shSel.add(id); shPaint(); return; }
+  if(e.target.closest("#shAll")){ shReset(); shPaint(); }
+});
 
 /* 小算盤：直接把結果寫進金額欄，不用切到計算機分頁 */
 const mini=document.getElementById("mini"), miniOpen=document.getElementById("miniOpen"),
@@ -1587,22 +1985,27 @@ bindPad(miniPad,mEng,miniPaint);
 /* ══ 編輯既有紀錄 ══
    直接把那筆讀回上面的表單，改完按「更新」蓋回去，不用刪掉重打 */
 function editPaint(){
-  const on = editIdx!==null;
+  const on = editId!==null;
   logAdd.textContent = on ? "更新" : "記一筆";
   logCancel.hidden = !on;
   logTip.hidden = !on;
 }
 function editReset(){
-  editIdx=null;
+  editId=null;
   logAmt.value=""; logNote.value="";
   mEng.clear(); miniToggle(false);
+  shReset(); shPaint();
   editPaint();
 }
-function editStart(i){
-  const e=logs[i]; if(!e) return;
-  editIdx=i;
+function editStart(id){
+  const e=recById(id); if(!e||e.del||e.t==="pay") return;
+  editId=id;
   logDay.value=String(e.d);
   logCat.value=catOf(e);
+  if(e.by&&memLive().some(m=>m.id===e.by)) logBy.value=e.by;
+  shSel=new Set(shareOf(e).filter(p=>memLive().some(m=>m.id===p)));
+  if(!shSel.size) shReset();
+  shPaint();
   /* 當初用台幣記的就用台幣讀回來，看到的才是自己輸入的那個數字 */
   if(e.nt!=null && RATE!=null){ logCur.value="TWD"; logAmt.value=String(e.nt); }
   else { logCur.value="KRW"; logAmt.value=String(e.a); }
@@ -1614,13 +2017,20 @@ function editStart(i){
 logCancel.addEventListener("click",()=>{ editReset(); logRender(); });
 
 logAdd.addEventListener("click",()=>{
+  const ms=memLive();
+  if(!ms.length){ memPanel.hidden=false; memSay("先加一個成員才能記帳",0); memNew.focus(); return; }
   const a=parseFloat(logAmt.value);
   if(!isFinite(a)||a<=0){ logAmt.focus(); return; }
 
+  const by=logBy.value||me||ms[0].id;
+  let sh=[...shSel].filter(id=>ms.some(m=>m.id===id));
+  if(!sh.length) sh=[by];        /* 一個都沒勾就當付款人自己吃下 */
+
   /* 一律換算成韓元入帳，統計才有共同基準；
      台幣輸入時用當下匯率換，並把原始金額留著顯示。 */
-  const rec={d:+logDay.value,c:logCat.value,n:logNote.value.trim()};
-  const old = editIdx!==null ? logs[editIdx] : null;
+  const old = editId ? recById(editId) : null;
+  const rec={id:old?old.id:rid(),d:+logDay.value,c:logCat.value,
+             n:logNote.value.trim(),by,sh,at:Date.now()};
   if(logCur.value==="TWD"){
     if(RATE==null){ logCur.focus(); return; }
     rec.nt=Math.round(a);
@@ -1628,7 +2038,7 @@ logAdd.addEventListener("click",()=>{
     rec.a = (old && old.nt===rec.nt) ? old.a : Math.round(a/RATE);
   } else rec.a=Math.round(a);
 
-  if(editIdx!==null) logs[editIdx]=rec; else logs.push(rec);
+  if(old) logs[logs.indexOf(old)]=rec; else logs.push(rec);
   logSave();
   editReset(); logRender();
 });
@@ -1658,19 +2068,37 @@ logList.addEventListener("click",e=>{
   /* 放開手指會補一個 click，不吃掉的話剛滑開的列會立刻被收起來 */
   if(swJust){ swJust=false; return; }
   const ed=e.target.closest(".log-edit");
-  if(ed){ editStart(+ed.dataset.e); return; }
+  if(ed){ editStart(ed.dataset.e); return; }
   const d=e.target.closest(".log-del");
   if(d){
-    const i=+d.dataset.i;
-    logs.splice(i,1);
-    /* 刪掉一筆之後面的索引會往前挪，正在編輯的那筆要跟著校正 */
-    if(editIdx===i) editReset();
-    else if(editIdx!==null && editIdx>i) editIdx--;
+    /* 刪除是留墓碑而不是真的移除，不然對方下次同步會把它復活 */
+    const r=recById(d.dataset.i);
+    if(r){ r.del=1; r.at=Date.now(); }
+    if(editId===d.dataset.i) editReset();
     logSave(); logRender(); return;
+  }
+  /* 結算頁：把一筆轉帳記成還款紀錄，反向沖銷淨額 */
+  const pf=e.target.closest("[data-pf]");
+  if(pf){
+    const from=pf.dataset.pf, to=pf.dataset.pt, amt=+pf.dataset.pa;
+    if(!confirm(memName(from)+" 付給 "+memName(to)+" ₩"+nfmt(amt)+"，要記成已付款嗎？")) return;
+    logs.push({id:rid(),t:"pay",by:from,to,a:amt,at:Date.now()});
+    logSave(); logRender(); return;
+  }
+  const un=e.target.closest("[data-undo]");
+  if(un){
+    const r=recById(un.dataset.undo);
+    if(r && confirm("撤銷這筆還款？淨額會回到未結清的狀態。")){
+      r.del=1; r.at=Date.now();
+      logSave(); logRender();
+    }
+    return;
   }
   rowsClose();   /* 點別處收起來 */
 });
 
+shReset();
+memRender();
 logRender();
 
 /* ══ 記帳備份 ══
@@ -1683,7 +2111,7 @@ const bkSay=(t,ok)=>{ bkMsg.textContent=t; bkMsg.className="bk-msg"+(t?(ok?" ok"
 
 bkOut.addEventListener("click",async()=>{
   if(!logs.length){ bkSay("還沒有紀錄可以備份",0); return; }
-  const txt=JSON.stringify({app:"seoul-2026",v:1,at:new Date().toISOString(),expenses:logs});
+  const txt=JSON.stringify({app:"seoul-2026",v:2,at:new Date().toISOString(),expenses:logs,members:mems});
   const name="seoul-expenses-"+new Date().toISOString().slice(0,10)+".json";
 
   /* 手機優先叫系統分享，才能直接丟進雲端硬碟或傳給自己；桌機退回下載 */
@@ -1718,7 +2146,11 @@ bkFile.addEventListener("change",async()=>{
     const clean=recClean(arr);
     if(!clean.length){ bkSay("這個檔裡沒有可用的紀錄",0); bkFile.value=""; return; }
     if(!confirm("備份裡有 "+clean.length+" 筆。匯入會「取代」目前的 "+logs.length+" 筆，確定嗎？")){ bkFile.value=""; bkSay(""); return; }
-    logs=clean; editReset(); logSave(); logRender();
+    logs=clean;
+    /* v2 的備份含成員清單；舊版備份沒有就沿用現有的成員 */
+    const mm=memClean(o&&o.members);
+    if(mm.length){ mems=mm; if(!mems.some(m=>m.id===me&&!m.del)) { me=""; meSave(); } memSave(); }
+    editReset(); logSave(); memRender(); logRender();
     bkSay("已匯入 "+clean.length+" 筆",1);
   }catch(_){ bkSay("讀不到這個檔，請確認是本 App 匯出的備份",0); }
   bkFile.value="";
@@ -1726,177 +2158,99 @@ bkFile.addEventListener("change",async()=>{
 
 /* ══ 雲端同步 ══
    Google Apps Script + 試算表（設定步驟見 repo 的 SYNC.md）。
-   每一列都帶「代號」，push 只換掉自己代號的列，不同人的帳不會互相蓋到。
+   一次來回同時上傳與下載：本機整包送上去，伺服器按 id 合併（at 大的贏）再回傳合併結果。
+   這樣兩支手機同時記帳不會互相抹掉，而且每次同步都會自我修正。
    本機 localStorage 仍是主力：沒網路照記，連上網再自動補推。 */
-const syCfg=document.getElementById("syCfg"), syUp=document.getElementById("syUp"),
-      syDown=document.getElementById("syDown"), syForm=document.getElementById("syForm"),
-      syUrlIn=document.getElementById("syUrlIn"), syUserIn=document.getElementById("syUserIn"),
-      sySave=document.getElementById("sySave"), syOffBtn=document.getElementById("syOffBtn"),
-      syId=document.getElementById("syId"), syIdV=document.getElementById("syIdV"),
+const syCfg=document.getElementById("syCfg"), syNow=document.getElementById("syNow"),
+      syForm=document.getElementById("syForm"), syUrlIn=document.getElementById("syUrlIn"),
+      sySaveB=document.getElementById("sySave"), syOffBtn=document.getElementById("syOffBtn"),
       syMsg=document.getElementById("syMsg");
 
-/* SYNC_URL 有填的話，同行的人完全不用設定：一開 App 就自動配一組代號、直接開始同步。
-   留空則退回「自己在 App 裡貼網址」的模式。 */
 let syUrl=SYNC_URL||localStorage.getItem("syncUrl")||"";
-let syUser=localStorage.getItem("syncUser")||"";
 let syPend=localStorage.getItem("syncPend")==="1";
 let syPaused=localStorage.getItem("syncOff")==="1";
 let syTimer=null, syBusy=false, syQuiet=false;
 
-/* 代號拿掉容易看錯的字（0 O o、1 l i），使用者要抄得下來、唸得出來 */
-function syNewUser(){
-  const AB="23456789abcdefghjkmnpqrstuvwxyz";
-  let s=""; for(let i=0;i<6;i++) s+=AB[Math.floor(Math.random()*AB.length)];
-  return s;
-}
-if(syUrl && !syUser){
-  syUser=syNewUser();
-  try{ localStorage.setItem("syncUser",syUser); }catch(_){}
-}
-/* 網址寫死時就不給改，設定區塊只留代號 */
+/* 網址寫死時就不給改，設定區塊只剩「關閉同步」 */
 if(SYNC_URL) syUrlIn.hidden=true;
 
-const syOnCfg=()=>!!(syUrl&&syUser&&!syPaused);
+const syOnCfg=()=>!!(syUrl&&!syPaused);
 const sySay=(t,ok)=>{ syMsg.textContent=t; syMsg.className="bk-msg"+(t?(ok===1?" ok":ok===0?" warn":""):""); };
 const syMark=v=>{ syPend=v; try{ localStorage.setItem("syncPend",v?"1":"0"); }catch(_){} };
 const syPause=v=>{ syPaused=v; try{ localStorage.setItem("syncOff",v?"1":"0"); }catch(_){} };
 
 function syPaint(){
   const on=syOnCfg();
-  syUp.hidden=syDown.hidden=!on;
-  syId.hidden=!on;
-  syIdV.textContent=syUser;
-  syCfg.textContent = syPaused ? "開啟同步" : (SYNC_URL ? "改代號" : (syUrl?"同步設定":"設定同步"));
+  syNow.hidden=!on;
+  syCfg.textContent=syPaused?"開啟同步":"設定";
   if(syPaused) sySay("同步已關閉 · 記帳只存在這支手機");
   else if(!on) sySay("尚未設定 · 記帳只存在這支手機");
-  else if(syPend) sySay("有 "+logs.length+" 筆還沒上傳",0);
+  else if(syPend) sySay("有變動還沒上傳",0);
 }
 
-async function syPush(quiet){
+async function syncNow(quiet){
   if(!syOnCfg()) return;
   /* 上一次還在跑就往後排，不要兩個請求同時改同一張表 */
-  if(syBusy){ clearTimeout(syTimer); syTimer=setTimeout(()=>syPush(1),1200); return; }
+  if(syBusy){ clearTimeout(syTimer); syTimer=setTimeout(()=>syncNow(1),1200); return; }
   syBusy=true;
-  if(!quiet) sySay("上傳中…");
+  if(!quiet) sySay("同步中…");
   try{
     /* 刻意用 text/plain：application/json 會觸發 preflight，Apps Script 不處理 OPTIONS */
     const r=await fetch(syUrl,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},
-      body:JSON.stringify({act:"push",user:syUser,rows:logs})});
+      body:JSON.stringify({act:"sync",group:GROUP_ID,rows:logs,mems:mems})});
     const o=await r.json();
-    if(!o||!o.ok) throw new Error((o&&o.err)||"push");
+    if(!o||!o.ok) throw new Error((o&&o.err)||"sync");
+    /* 合併結果寫回本機。syQuiet 擋住 logSave 觸發的 hook，
+       否則剛拉下來的東西又會被排進上傳佇列 */
+    syQuiet=true;
+    logs=mergeById(logs,recClean(o.rows));
+    mems=mergeById(mems,memClean(o.mems));
+    if(me&&!mems.some(m=>m.id===me&&!m.del)){ me=""; meSave(); }   /* 我被別人移除了 */
+    logSave(); memSave();
+    syQuiet=false;
     syMark(false);
-    sySay("已同步 · 雲端 "+o.n+" 筆",1);
+    memRender(); logRender();
+    sySay("已同步 · 共 "+expLive().length+" 筆 · "+memLive().length+" 人",1);
   }catch(_){
     syMark(true);
-    sySay(quiet?"有 "+logs.length+" 筆還沒上傳，等有網路會自動再試":"上傳失敗，檢查網路或同步網址",0);
+    sySay(quiet?"有變動還沒上傳，等有網路會自動再試":"同步失敗，檢查網路",0);
   }
   syBusy=false;
 }
 
-/* 剛從雲端讀回來的東西不需要再推回去。
-   關掉變動通知並取消排隊中的上傳，免得白跑一趟請求、也免得狀態列亂跳 */
-function syAdopt(rows){
-  clearTimeout(syTimer);
-  syQuiet=true;
-  logs=rows; editReset(); logSave(); logRender();
-  syQuiet=false;
-  syMark(false);
-}
-
-async function syFetch(){
-  const u=syUrl+(syUrl.indexOf("?")<0?"?":"&")+"act=pull&user="+encodeURIComponent(syUser)+"&t="+Date.now();
-  const r=await fetch(u);
-  const o=await r.json();
-  if(!o||!o.ok) throw new Error((o&&o.err)||"pull");
-  return recClean(o.rows);
-}
-
-async function syPull(manual){
-  if(!syOnCfg()) return;
-  if(manual) sySay("讀取中…");
-  try{
-    const rows=await syFetch();
-
-    if(!manual){
-      /* 開 App 時只在本機是空的才自動接回來——換手機、重灌的情境。
-         本機已經有東西就一律不動它，避免把還沒上傳的蓋掉。 */
-      if(!logs.length && rows.length){
-        syAdopt(rows);
-        sySay("已從雲端接回 "+rows.length+" 筆",1);
-      } else if(syPend) syPush(1);
-      else if(rows.length!==logs.length) sySay("雲端 "+rows.length+" 筆 · 這台 "+logs.length+" 筆，不一致",0);
-      else sySay("已同步 · 雲端 "+rows.length+" 筆",1);
-      return;
-    }
-    if(!rows.length){ sySay("雲端沒有「"+syUser+"」的紀錄",0); return; }
-    if(!confirm("雲端有 "+rows.length+" 筆。讀回來會「取代」這台手機目前的 "+logs.length+" 筆，確定嗎？")) { syPaint(); return; }
-    syAdopt(rows);
-    sySay("已讀回 "+rows.length+" 筆",1);
-  }catch(_){
-    sySay(manual?"連不上雲端，檢查網路或同步網址":"連不上雲端，先用這台的紀錄",0);
-  }
-}
-
-/* 記帳有任何變動就排一次上傳。壓 1.5 秒是為了讓連續修改併成一次請求 */
+/* 記帳或成員有任何變動就排一次同步。壓 1.5 秒讓連續修改併成一次請求 */
 function syQueue(){
   if(!syOnCfg()||syQuiet) return;
-  syMark(true); sySay("準備上傳…");
+  syMark(true); sySay("準備同步…");
   clearTimeout(syTimer);
-  syTimer=setTimeout(()=>syPush(1),1500);
+  syTimer=setTimeout(()=>syncNow(1),1500);
 }
 onLogChange=syQueue;
 
-/* 換代號時絕對不能直接把本機推上去——那組代號在雲端可能已經有一整趟的紀錄。
-   一律先看雲端有什麼再決定方向，兩邊都有東西時預設保住雲端那份。 */
-async function sySwitch(){
-  sySay("讀取中…");
-  try{
-    const rows=await syFetch();
-    if(!rows.length){ syPush(0); return; }                     /* 雲端還沒有這個代號，把本機推上去 */
-    if(!logs.length){ syAdopt(rows); sySay("已接回 "+rows.length+" 筆",1); return; }
-    if(confirm("代號「"+syUser+"」在雲端有 "+rows.length+" 筆，這台有 "+logs.length+" 筆。\n\n按「確定」用雲端那份取代這台。\n按「取消」先都不動，你可以再按「立即上傳」把這台的推上去。")){
-      syAdopt(rows); sySay("已接回 "+rows.length+" 筆",1);
-    } else sySay("雲端 "+rows.length+" 筆 · 這台 "+logs.length+" 筆，還沒決定方向",0);
-  }catch(_){ sySay("連不上雲端，等等再試",0); }
-}
-
 syCfg.addEventListener("click",()=>{
-  if(syPaused){                       /* 暫停狀態下這顆是「開啟同步」 */
-    syPause(false); syPaint();
-    logs.length ? syPush(0) : syPull(0);
-    return;
-  }
-  const open=syForm.hidden;
-  syForm.hidden=!open;
-  if(open){ syUrlIn.value=SYNC_URL?"":syUrl; syUserIn.value=syUser; }
+  if(syPaused){ syPause(false); syPaint(); syncNow(0); return; }
+  syForm.hidden=!syForm.hidden;
+  if(!syForm.hidden) syUrlIn.value=SYNC_URL?"":syUrl;
 });
-sySave.addEventListener("click",()=>{
-  const n=syUserIn.value.trim();
-  if(!n){ sySay("代號不能空白",0); syUserIn.focus(); return; }
+sySaveB.addEventListener("click",()=>{
   if(!SYNC_URL){
     const u=syUrlIn.value.trim();
     if(!/^https:\/\/script\.google\.com\/.+\/exec$/.test(u)){ sySay("網址要是 Apps Script 的部署網址，結尾 /exec",0); syUrlIn.focus(); return; }
     syUrl=u; try{ localStorage.setItem("syncUrl",u); }catch(_){}
   }
-  const changed = n!==syUser;
-  syUser=n;
-  try{ localStorage.setItem("syncUser",n); }catch(_){}
-  syForm.hidden=true; syPaint();
-  if(changed) sySwitch();
-  else if(syPend) syPush(0);
-  else syPull(0);
+  syForm.hidden=true; syPaint(); syncNow(0);
 });
 syOffBtn.addEventListener("click",()=>{
   if(!confirm("關閉同步之後就不再上傳，這支手機的紀錄和雲端上的都不會被刪掉。之後想開回來按同一個位置就行。確定嗎？")) return;
   syPause(true); syMark(false);
   syForm.hidden=true; syPaint();
 });
-syUp.addEventListener("click",()=>syPush(0));
-syDown.addEventListener("click",()=>syPull(1));
-addEventListener("online",()=>{ if(syPend) syPush(1); });
+syNow.addEventListener("click",()=>syncNow(0));
+addEventListener("online",()=>{ if(syPend) syncNow(1); });
 
 syPaint();
-if(syOnCfg()) syPull(0);
+if(syOnCfg()) syncNow(0);
+
 
 /* ══ 手動更新 ══
    PWA 加到桌面後沒有網址列可以重新整理，這顆按鈕強制抓最新版。
