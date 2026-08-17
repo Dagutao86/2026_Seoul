@@ -564,6 +564,15 @@ body::after{
 }
 /* 網址是技術字串，用等寬字才看得出來有沒有貼錯 */
 .sy-form #syUrlIn{font-family:var(--f-mono);font-size:11px;letter-spacing:.02em}
+/* .sy-form input 的 display:block 特異性高過 UA 的 [hidden]，要自己關掉 */
+.sy-form input[hidden]{display:none}
+/* 代號是換手機時找回資料的鑰匙，擺明顯一點讓人抄得下來 */
+.sy-id{
+  font-family:var(--f-mono);font-size:10px;letter-spacing:.24em;
+  color:var(--ink-3);margin-top:calc(var(--u)*1.25);
+}
+.sy-id b{font-family:var(--f-mono);font-weight:700;font-size:15px;letter-spacing:.2em;color:var(--gold)}
+.sy-id[hidden]{display:none}
 .sy-form input+input{margin-top:calc(var(--u)*2)}
 .sy-form input::placeholder{font-family:var(--f-title);color:var(--ink-3)}
 .sy-form input:focus{outline:none;border-bottom-color:var(--jade)}
@@ -845,8 +854,9 @@ body::after{
 
      <h4 class="bk-h2">CLOUD SYNC</h4>
      <div class="bk-msg" id="syMsg"></div>
+     <div class="sy-id" id="syId" hidden>代號 <b id="syIdV"></b></div>
      <div class="bk-row">
-       <button class="btn" id="syCfg" type="button">設定同步</button>
+       <button class="btn" id="syCfg" type="button">改代號</button>
        <button class="btn" id="syUp" type="button" hidden>立即上傳</button>
        <button class="btn" id="syDown" type="button" hidden>從雲端讀回</button>
      </div>
@@ -855,9 +865,9 @@ body::after{
        <input id="syUserIn" type="text" autocapitalize="off" spellcheck="false" placeholder="你的代號" aria-label="你的代號">
        <div class="bk-row">
          <button class="btn" id="sySave" type="button">儲存</button>
-         <button class="btn" id="syOff" type="button">關閉同步</button>
+         <button class="btn" id="syOffBtn" type="button">關閉同步</button>
        </div>
-       <p class="bk-p">代號就是找回資料的鑰匙——換手機時填一樣的代號就能把紀錄讀回來。同一個代號只在一支手機上用，不然兩台會互相蓋掉。</p>
+       <p class="bk-p">上面那組代號就是找回資料的鑰匙——換手機時填一樣的代號就能把紀錄讀回來，建議抄下來。同一個代號只在一支手機上用，不然兩台會互相蓋掉。</p>
      </div>
    </div>
  </section>
@@ -1469,6 +1479,11 @@ logDay.innerHTML=LOG_DAYS.map(d=>`<option value="${d.n}">Day ${d.n} · ${esc(d.d
 logDay.value=String(dayIndex()<0?0:DAYS[dayIndex()].n);
 logCat.innerHTML=CATS.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("");
 
+/* 雲端同步的位址，寫死在這裡讓同行的人不用自己貼網址。
+   換過 Apps Script 部署就要回來改這一行。留空則退回讓使用者自己在 App 裡設定。
+   注意：這個 repo 是公開的，等於這條網址是公開的——見 SYNC.md 的安全性一節。 */
+const SYNC_URL="";
+
 /* 舊資料沒有分類欄位，一律歸到「其他」 */
 const catOf=e=>CATS.includes(e.c)?e.c:"其他";
 
@@ -1716,23 +1731,44 @@ bkFile.addEventListener("change",async()=>{
 const syCfg=document.getElementById("syCfg"), syUp=document.getElementById("syUp"),
       syDown=document.getElementById("syDown"), syForm=document.getElementById("syForm"),
       syUrlIn=document.getElementById("syUrlIn"), syUserIn=document.getElementById("syUserIn"),
-      sySave=document.getElementById("sySave"), syOff=document.getElementById("syOff"),
+      sySave=document.getElementById("sySave"), syOffBtn=document.getElementById("syOffBtn"),
+      syId=document.getElementById("syId"), syIdV=document.getElementById("syIdV"),
       syMsg=document.getElementById("syMsg");
 
-let syUrl=localStorage.getItem("syncUrl")||"";
+/* SYNC_URL 有填的話，同行的人完全不用設定：一開 App 就自動配一組代號、直接開始同步。
+   留空則退回「自己在 App 裡貼網址」的模式。 */
+let syUrl=SYNC_URL||localStorage.getItem("syncUrl")||"";
 let syUser=localStorage.getItem("syncUser")||"";
 let syPend=localStorage.getItem("syncPend")==="1";
+let syPaused=localStorage.getItem("syncOff")==="1";
 let syTimer=null, syBusy=false, syQuiet=false;
 
-const syOnCfg=()=>!!(syUrl&&syUser);
+/* 代號拿掉容易看錯的字（0 O o、1 l i），使用者要抄得下來、唸得出來 */
+function syNewUser(){
+  const AB="23456789abcdefghjkmnpqrstuvwxyz";
+  let s=""; for(let i=0;i<6;i++) s+=AB[Math.floor(Math.random()*AB.length)];
+  return s;
+}
+if(syUrl && !syUser){
+  syUser=syNewUser();
+  try{ localStorage.setItem("syncUser",syUser); }catch(_){}
+}
+/* 網址寫死時就不給改，設定區塊只留代號 */
+if(SYNC_URL) syUrlIn.hidden=true;
+
+const syOnCfg=()=>!!(syUrl&&syUser&&!syPaused);
 const sySay=(t,ok)=>{ syMsg.textContent=t; syMsg.className="bk-msg"+(t?(ok===1?" ok":ok===0?" warn":""):""); };
 const syMark=v=>{ syPend=v; try{ localStorage.setItem("syncPend",v?"1":"0"); }catch(_){} };
+const syPause=v=>{ syPaused=v; try{ localStorage.setItem("syncOff",v?"1":"0"); }catch(_){} };
 
 function syPaint(){
   const on=syOnCfg();
   syUp.hidden=syDown.hidden=!on;
-  syCfg.textContent=on?"同步設定":"設定同步";
-  if(!on) sySay("尚未設定 · 記帳只存在這支手機");
+  syId.hidden=!on;
+  syIdV.textContent=syUser;
+  syCfg.textContent = syPaused ? "開啟同步" : (SYNC_URL ? "改代號" : (syUrl?"同步設定":"設定同步"));
+  if(syPaused) sySay("同步已關閉 · 記帳只存在這支手機");
+  else if(!on) sySay("尚未設定 · 記帳只存在這支手機");
   else if(syPend) sySay("有 "+logs.length+" 筆還沒上傳",0);
 }
 
@@ -1767,15 +1803,19 @@ function syAdopt(rows){
   syMark(false);
 }
 
+async function syFetch(){
+  const u=syUrl+(syUrl.indexOf("?")<0?"?":"&")+"act=pull&user="+encodeURIComponent(syUser)+"&t="+Date.now();
+  const r=await fetch(u);
+  const o=await r.json();
+  if(!o||!o.ok) throw new Error((o&&o.err)||"pull");
+  return recClean(o.rows);
+}
+
 async function syPull(manual){
   if(!syOnCfg()) return;
   if(manual) sySay("讀取中…");
   try{
-    const u=syUrl+(syUrl.indexOf("?")<0?"?":"&")+"act=pull&user="+encodeURIComponent(syUser)+"&t="+Date.now();
-    const r=await fetch(u);
-    const o=await r.json();
-    if(!o||!o.ok) throw new Error((o&&o.err)||"pull");
-    const rows=recClean(o.rows);
+    const rows=await syFetch();
 
     if(!manual){
       /* 開 App 時只在本機是空的才自動接回來——換手機、重灌的情境。
@@ -1806,25 +1846,49 @@ function syQueue(){
 }
 onLogChange=syQueue;
 
+/* 換代號時絕對不能直接把本機推上去——那組代號在雲端可能已經有一整趟的紀錄。
+   一律先看雲端有什麼再決定方向，兩邊都有東西時預設保住雲端那份。 */
+async function sySwitch(){
+  sySay("讀取中…");
+  try{
+    const rows=await syFetch();
+    if(!rows.length){ syPush(0); return; }                     /* 雲端還沒有這個代號，把本機推上去 */
+    if(!logs.length){ syAdopt(rows); sySay("已接回 "+rows.length+" 筆",1); return; }
+    if(confirm("代號「"+syUser+"」在雲端有 "+rows.length+" 筆，這台有 "+logs.length+" 筆。\n\n按「確定」用雲端那份取代這台。\n按「取消」先都不動，你可以再按「立即上傳」把這台的推上去。")){
+      syAdopt(rows); sySay("已接回 "+rows.length+" 筆",1);
+    } else sySay("雲端 "+rows.length+" 筆 · 這台 "+logs.length+" 筆，還沒決定方向",0);
+  }catch(_){ sySay("連不上雲端，等等再試",0); }
+}
+
 syCfg.addEventListener("click",()=>{
-  const on=syForm.hidden;
-  syForm.hidden=!on;
-  if(on){ syUrlIn.value=syUrl; syUserIn.value=syUser; }
+  if(syPaused){                       /* 暫停狀態下這顆是「開啟同步」 */
+    syPause(false); syPaint();
+    logs.length ? syPush(0) : syPull(0);
+    return;
+  }
+  const open=syForm.hidden;
+  syForm.hidden=!open;
+  if(open){ syUrlIn.value=SYNC_URL?"":syUrl; syUserIn.value=syUser; }
 });
 sySave.addEventListener("click",()=>{
-  const u=syUrlIn.value.trim(), n=syUserIn.value.trim();
-  if(!/^https:\/\/script\.google\.com\/.+\/exec$/.test(u)){ sySay("網址要是 Apps Script 的部署網址，結尾 /exec",0); syUrlIn.focus(); return; }
+  const n=syUserIn.value.trim();
   if(!n){ sySay("代號不能空白",0); syUserIn.focus(); return; }
-  syUrl=u; syUser=n;
-  try{ localStorage.setItem("syncUrl",u); localStorage.setItem("syncUser",n); }catch(_){}
+  if(!SYNC_URL){
+    const u=syUrlIn.value.trim();
+    if(!/^https:\/\/script\.google\.com\/.+\/exec$/.test(u)){ sySay("網址要是 Apps Script 的部署網址，結尾 /exec",0); syUrlIn.focus(); return; }
+    syUrl=u; try{ localStorage.setItem("syncUrl",u); }catch(_){}
+  }
+  const changed = n!==syUser;
+  syUser=n;
+  try{ localStorage.setItem("syncUser",n); }catch(_){}
   syForm.hidden=true; syPaint();
-  /* 剛接上時先看雲端有什麼：本機空的就接回來，有東西就把本機推上去 */
-  logs.length ? syPush(0) : syPull(0);
+  if(changed) sySwitch();
+  else if(syPend) syPush(0);
+  else syPull(0);
 });
-syOff.addEventListener("click",()=>{
-  if(!confirm("關閉同步只是不再上傳，這支手機的紀錄和雲端上的都不會被刪掉。確定嗎？")) return;
-  syUrl=""; syUser=""; syMark(false);
-  try{ localStorage.removeItem("syncUrl"); localStorage.removeItem("syncUser"); }catch(_){}
+syOffBtn.addEventListener("click",()=>{
+  if(!confirm("關閉同步之後就不再上傳，這支手機的紀錄和雲端上的都不會被刪掉。之後想開回來按同一個位置就行。確定嗎？")) return;
+  syPause(true); syMark(false);
   syForm.hidden=true; syPaint();
 });
 syUp.addEventListener("click",()=>syPush(0));
