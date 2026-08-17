@@ -1482,7 +1482,7 @@ logCat.innerHTML=CATS.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).joi
 /* 雲端同步的位址，寫死在這裡讓同行的人不用自己貼網址。
    換過 Apps Script 部署就要回來改這一行。留空則退回讓使用者自己在 App 裡設定。
    注意：這個 repo 是公開的，等於這條網址是公開的——見 SYNC.md 的安全性一節。 */
-const SYNC_URL="";
+const SYNC_URL="https://script.google.com/macros/s/AKfycbywl5Knb3qUZHNC4MCtd4nNO5AaCqP1xSuzKMCD_r2CLPwQ9Rf7mmtBC9rwIs_OCT3GUw/exec";
 
 /* 舊資料沒有分類欄位，一律歸到「其他」 */
 const catOf=e=>CATS.includes(e.c)?e.c:"其他";
