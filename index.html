@@ -335,7 +335,10 @@ body::after{
 .foot{margin-top:calc(var(--u)*9);padding-top:calc(var(--u)*4);border-top:1px solid var(--line)}
 .foot h4{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.34em;color:var(--jade);font-weight:400;margin-bottom:calc(var(--u)*3)}
 .foot dt{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.2em;color:var(--ink);margin-bottom:4px}
-.foot dd{font-size:14px;color:var(--ink-2);line-height:2;margin-bottom:calc(var(--u)*2.5)}
+.foot dd{
+  font-family:var(--f-title);font-size:18px;letter-spacing:.02em;
+  color:var(--ink-2);line-height:1.9;margin-bottom:calc(var(--u)*2.5);
+}
 .colophon{font-family:var(--f-mono);font-size:11px;color:var(--ink-3);line-height:2;margin-top:calc(var(--u)*3);letter-spacing:.06em}
 /* ══ 12H FORECAST ══ 無外框，橫向捲動 */
 .fc{
@@ -493,6 +496,15 @@ body::after{
 }
 .mem-b:hover,.mem-b:active{background:var(--vermilion);color:#fff;border-color:var(--vermilion)}
 .mem-panel .log-row{margin-top:calc(var(--u)*2)}
+/* 成員面板不在 .log-form 裡，輸入框樣式要自己補，不然會是瀏覽器預設的圓角外框 */
+.mem-panel input{
+  flex:1 1 0;min-width:0;
+  font-family:var(--f-title);font-size:19.5px;color:var(--ink);
+  background:none;border:none;border-bottom:1px solid var(--line-2);
+  border-radius:0;-webkit-appearance:none;appearance:none;padding:4px 0;
+}
+.mem-panel input::placeholder{font-family:var(--f-title);color:var(--ink-3)}
+.mem-panel input:focus{outline:none;border-bottom-color:var(--jade)}
 
 /* 分攤人：可切換的膠囊，預設全選 */
 .sh-row{display:flex;align-items:flex-start;gap:calc(var(--u)*1.5);margin-top:calc(var(--u)*2.25)}
@@ -638,10 +650,11 @@ body::after{
 .bk h4{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.3em;color:var(--jade);font-weight:400}
 .bk-p{font-family:var(--f-title);font-size:16px;color:var(--ink-3);line-height:1.85;margin-top:calc(var(--u)*1.5)}
 .bk-row{display:flex;gap:calc(var(--u)*1.5);margin-top:calc(var(--u)*2)}
-/* 備份與同步的按鈕用手寫體，跟記帳表單的「記一筆」一致 */
-.bk .btn{
-  font-family:var(--f-title);font-weight:700;font-size:14.5px;
-  letter-spacing:.06em;line-height:1.2;padding:5px 12px;
+/* 備份、同步、成員的按鈕都用手寫體。
+   手寫體筆畫細，同字級看起來比等寬字小一截，所以字級要往上加 */
+.bk .btn,#memBtn,#memAdd{
+  font-family:var(--f-title);font-weight:700;font-size:17px;
+  letter-spacing:.06em;line-height:1.25;padding:4px 13px;
 }
 .bk-msg{
   font-family:var(--f-mono);font-size:10px;letter-spacing:.1em;
