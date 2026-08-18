@@ -1840,15 +1840,19 @@ function viewByDay(){
 function viewSplit(){
   const ms=memLive();
   if(!ms.length) return '<div class="log-empty">先在上面「成員」加入同行的人</div>';
-  const es=expLive();
-  if(!es.length) return '<div class="log-empty">還沒有紀錄</div>';
+  if(!expLive().length) return '<div class="log-empty">還沒有紀錄</div>';
+  /* 只看真正跨人的帳：自己付、也只有自己分攤的那些不必分帳，整頁都不列入 */
+  const es=expLive().filter(e=>{
+    const sh=shareOf(e);
+    return sh.length>1 || (sh.length===1 && sh[0]!==e.by);
+  });
+  if(!es.length) return '<div class="log-empty">目前沒有需要分帳的紀錄<br>（每一筆都是自己付、自己用）</div>';
 
   const paid={}, owe={};
   const touch=id=>{ if(id&&paid[id]===undefined){ paid[id]=0; owe[id]=0; } };
-  ms.forEach(m=>{ paid[m.id]=0; owe[m.id]=0; });
   es.forEach(e=>{
     touch(e.by); if(e.by) paid[e.by]+=e.a;
-    const sh=shareOf(e); if(!sh.length) return;
+    const sh=shareOf(e);
     const per=e.a/sh.length;
     sh.forEach(p=>{ touch(p); owe[p]+=per; });
   });
@@ -1867,12 +1871,12 @@ function viewSplit(){
   }).join("");
 
   return `<section class="log-sec">
-    <div class="log-h"><span class="log-d">誰先墊的</span><span class="log-sub">全團 ₩${nfmt(total)}</span></div>
+    <div class="log-h"><span class="log-d">誰先墊的</span><span class="log-sub">需分帳 ₩${nfmt(total)}</span></div>
     ${ids.map(id=>`<div class="sp-r">
       <span class="sp-n">${esc(memName(id))}${id===me?"<em>ME</em>":""}</span>
       <span class="sp-v"><b>₩${nfmt(paid[id])}</b>應分攤 ₩${nfmt(owe[id])}</span>
     </div>`).join("")}
-    <div class="bal-note">左邊粗體是這個人先掏出去的錢，右邊是他該分攤的金額。差額請看「結算」。</div>
+    <div class="bal-note">大字是這個人先掏出去的錢，下面小字是他該分攤的金額。<br>只列有跟別人分攤的帳，自己付自己用的不算。差額請看「結算」。</div>
   </section>${days}`;
 }
 
