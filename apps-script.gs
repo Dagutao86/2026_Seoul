@@ -14,10 +14,12 @@
 
 var LEDGER = 'ledger';
 var MEMBERS = 'members';
+var RATES = 'rates';
 
 var L_HEAD = ['群組', 'ID', '類型', 'Day', '分類', '韓元', '原始台幣', '項目',
               '付款人', '分攤人', '收款人', '刪除', '版本', '更新時間'];
 var M_HEAD = ['群組', 'ID', '名字', '刪除', '版本', '更新時間'];
+var R_HEAD = ['日期', 'KRW→TWD', '來源', '更新時間'];
 
 function doPost(e) {
   var lock = LockService.getScriptLock();
@@ -26,6 +28,11 @@ function doPost(e) {
     var req = JSON.parse(e.postData.contents);
     var group = String(req.group || '').trim();
     if (!group) return out({ ok: false, err: 'no group' });
+
+    /* 每日匯率：跟記帳分開走，因為要對外抓 Visa，比較慢也比較容易失敗 */
+    if (req.act === 'rates') {
+      return out({ ok: true, rates: syncRates(req.dates, req.manual), now: Date.now() });
+    }
     if (req.act !== 'sync') return out({ ok: false, err: 'unknown act' });
 
     var rows = mergeRows(group, Array.isArray(req.rows) ? req.rows : []);
@@ -82,6 +89,9 @@ function readRows(group) {
       r.a = Math.round(num(v[5]));
       r.by = String(v[8] || '');
       r.to = String(v[10] || '');
+      /* 還款的幣別借用「分攤人」欄放（pay 類型本來就沒有分攤人），
+         這樣不用加欄位、不會動到既有試算表的寬度 */
+      if (String(v[9] || '').trim() === 'tw') r.tw = 1;
     } else {
       r.d = num(v[3]);
       r.c = String(v[4] || '其他');
@@ -121,6 +131,7 @@ function mergeRows(group, incoming) {
       r = { id: id, t: 'pay', a: Math.round(num(x.a)), by: String(x.by || ''),
             to: String(x.to || ''), at: at };
       if (!r.by || !r.to) return;
+      if (x.tw) r.tw = 1;
     } else {
       r = { id: id, d: num(x.d), c: String(x.c || '其他'), a: Math.round(num(x.a)),
             n: String(x.n || ''), by: String(x.by || ''),
@@ -154,7 +165,7 @@ function writeRows(group, rows) {
             num(r.nt) > 0 ? num(r.nt) : '',
             r.t === 'pay' ? '' : String(r.n || ''),
             String(r.by || ''),
-            r.t === 'pay' ? '' : (r.sh || []).join(','),
+            r.t === 'pay' ? (r.tw ? 'tw' : '') : (r.sh || []).join(','),
             r.t === 'pay' ? String(r.to || '') : '',
             r.del ? '1' : '',
             num(r.at),
@@ -222,6 +233,132 @@ function writeMems(group, mems) {
   sh.getRange(oldEnd + 1, 1, body.length, M_HEAD.length).setValues(body);
   SpreadsheetApp.flush();
   dropGroup(sh, group, oldEnd);
+}
+
+/* ── 每日匯率 ──
+   結算要按「消費當天」的匯率換算，不然刷卡日期不同的人會多付或少付。
+   抓到的匯率永久快取：過去某一天的匯率不會再變，沒必要重抓。
+   手動填的優先權最高，Visa 永遠不會蓋掉它。 */
+
+function readRates() {
+  var sh = sheet(RATES, R_HEAD);
+  var last = sh.getLastRow();
+  var map = {};
+  if (last < 2) return map;
+  var vals = sh.getRange(2, 1, last - 1, R_HEAD.length).getValues();
+  for (var i = 0; i < vals.length; i++) {
+    var d = ymd(vals[i][0]);
+    var v = Number(vals[i][1]);
+    if (!d || !isFinite(v) || v <= 0) continue;
+    map[d] = { r: v, src: String(vals[i][2] || '') };
+  }
+  return map;
+}
+
+/* 試算表可能把日期存成 Date 物件也可能是字串，統一成 YYYY-MM-DD */
+function ymd(v) {
+  if (v instanceof Date) {
+    return Utilities.formatDate(v, 'UTC', 'yyyy-MM-dd');
+  }
+  var s = String(v || '').trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : '';
+}
+
+function syncRates(dates, manual) {
+  var map = readRates();
+  var dirty = false;
+
+  /* 手動輸入的先寫進去，之後就不會再被 Visa 蓋掉 */
+  if (manual && typeof manual === 'object') {
+    for (var k in manual) {
+      if (!ymd(k)) continue;
+      var mv = Number(manual[k]);
+      if (!isFinite(mv) || mv <= 0) continue;
+      map[k] = { r: mv, src: '手動' };
+      dirty = true;
+    }
+  }
+
+  var want = Array.isArray(dates) ? dates : [];
+  for (var i = 0; i < want.length; i++) {
+    var d = ymd(want[i]);
+    if (!d || map[d]) continue;              /* 已經有了就不要再抓 */
+    var got = visaRate(d);
+    if (got == null) continue;               /* 抓不到就留空，下次再試 */
+    map[d] = { r: got, src: 'visa' };
+    dirty = true;
+  }
+
+  if (dirty) writeRates(map);
+
+  var outMap = {};
+  for (var kk in map) outMap[kk] = { r: map[kk].r, src: map[kk].src };
+  return outMap;
+}
+
+function writeRates(map) {
+  var sh = sheet(RATES, R_HEAD);
+  var oldEnd = sh.getLastRow();
+  var keys = Object.keys(map).sort();
+  if (!keys.length) { dropRates(sh, oldEnd); return; }
+  var now = new Date();
+  var body = keys.map(function (d) {
+    return [d, map[d].r, map[d].src || '', now];
+  });
+  sh.getRange(oldEnd + 1, 1, body.length, R_HEAD.length).setValues(body);
+  SpreadsheetApp.flush();
+  dropRates(sh, oldEnd);
+}
+
+/* 匯率表沒有群組欄，整段舊資料直接刪掉 */
+function dropRates(sh, upto) {
+  var last = sh.getLastRow();
+  if (upto && upto < last) last = upto;
+  for (var i = last; i >= 2; i--) sh.deleteRow(i);
+}
+
+/* Visa 的匯率查詢端點。這是他們網站自己用的，沒有正式文件，
+   所以回應盡量寬鬆地解析，而且一定要通過合理範圍檢查才採用——
+   寧可抓不到讓使用者手動填，也不要存一個錯的數字進去。 */
+function visaRate(date) {
+  var p = date.split('-');
+  var md = p[1] + '/' + p[2] + '/' + p[0];
+  var url = 'https://www.visa.com.tw/cmsapi/fx/rates'
+          + '?amount=1&fee=0'
+          + '&utcConvertedDate=' + encodeURIComponent(md)
+          + '&exchangedate=' + encodeURIComponent(md)
+          + '&fromCurr=TWD&toCurr=KRW';
+  try {
+    var res = UrlFetchApp.fetch(url, {
+      muteHttpExceptions: true, followRedirects: true,
+      headers: { 'Accept': 'application/json', 'User-Agent': 'Mozilla/5.0' }
+    });
+    if (res.getResponseCode() !== 200) return null;
+    var o = JSON.parse(res.getContentText());
+    var v = pickRate(o);
+    if (v == null) return null;
+    /* 換算方向不確定：KRW→TWD 約 0.023、TWD→KRW 約 43。
+       兩者差三個數量級，用大小就分得出來，該倒過來就倒過來。 */
+    var rate = v > 1 ? 1 / v : v;
+    if (rate < 0.005 || rate > 0.1) return null;
+    return rate;
+  } catch (err) {
+    return null;
+  }
+}
+
+function pickRate(o) {
+  if (!o || typeof o !== 'object') return null;
+  var names = ['conversionRate', 'fxRateVisa', 'fxRateWithAdditionalFee', 'convertedAmount'];
+  for (var i = 0; i < names.length; i++) {
+    var v = Number(o[names[i]]);
+    if (isFinite(v) && v > 0) return v;
+    if (o.originalValues) {
+      var v2 = Number(o.originalValues[names[i]]);
+      if (isFinite(v2) && v2 > 0) return v2;
+    }
+  }
+  return null;
 }
 
 /* 從後面往前刪，才不會邊刪邊位移。

@@ -571,6 +571,28 @@ body::after{
 .st-t i{font-style:normal;font-weight:700}
 .st-a{margin-top:calc(var(--u)*1.5)}
 .st-a .btn{font-family:var(--f-title);font-size:15px;letter-spacing:.03em}
+
+/* ══ 每日匯率 ══ */
+.fx-r{
+  display:flex;align-items:center;gap:calc(var(--u)*.75);
+  padding:calc(var(--u)*1.25) 0;border-bottom:1px solid var(--line);
+}
+.fx-r.miss .fx-s{color:var(--vermilion)}
+.fx-n{
+  flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-family:var(--f-title);font-size:16px;color:var(--ink-2);
+}
+.fx-n em{font-family:var(--f-mono);font-style:normal;font-size:10px;letter-spacing:.08em;color:var(--ink-3);margin-left:6px}
+.fx-i{
+  flex:0 0 84px;min-width:0;font-family:var(--f-disp);font-size:15px;color:var(--ink);
+  background:var(--paper-2);border:1px solid var(--line-2);padding:4px 6px;
+  text-align:right;-webkit-appearance:none;appearance:none;border-radius:0;
+}
+.fx-i:focus{outline:1px solid var(--jade);outline-offset:1px}
+.fx-s{
+  flex:0 0 30px;font-family:var(--f-mono);font-size:9.5px;letter-spacing:.06em;
+  color:var(--ink-3);text-align:right;white-space:nowrap;overflow:hidden;
+}
 .bal-ok{
   font-family:var(--f-mono);font-size:11px;letter-spacing:.16em;
   color:var(--jade);margin-top:calc(var(--u)*3);line-height:1.8;
@@ -1668,6 +1690,39 @@ const myShare=e=>{ const sh=shareOf(e); return (me&&sh.indexOf(me)>=0)?e.a/sh.le
 /* Day 0 收行前花費（機票、接送、行前採買） */
 const LOG_DAYS=[{n:0,date:"行前"}].concat(DAYS.map(d=>({n:d.n,date:d.date})));
 
+/* ── 每日匯率 ──
+   結算要用「消費當天」的匯率換算。刷卡是當天結匯的，同一筆韓元在不同天
+   對台幣的實付金額不一樣，全部用同一個匯率算會有人多付、有人少付。
+   Day 0 是行前刷的（機票、民宿、保險），使用者指定用 8/11。 */
+const RATE_DAY0="2026-08-11";
+const DAY_DATE={0:RATE_DAY0};
+DAYS.forEach(d=>{
+  const [m,dd]=d.date.split("/");
+  DAY_DATE[d.n]=`2026-${String(m).padStart(2,"0")}-${String(dd).padStart(2,"0")}`;
+});
+const RATE_DATES=Object.keys(DAY_DATE).map(k=>DAY_DATE[k]);
+
+let dayRates=jread("dayRates",{});   /* { "2026-08-20": {r:0.0234, src:"visa"} } */
+const drSave=()=>{ try{ localStorage.setItem("dayRates",JSON.stringify(dayRates)); }catch(_){} };
+const rateOfDay=n=>{ const h=dayRates[DAY_DATE[n]]; return h&&h.r>0?h.r:null; };
+
+/* 一筆消費值多少台幣。本來就用台幣輸入的（機票、接駁那種）直接用實付金額，
+   不要再換算回去——那才是真正從戶頭扣掉的錢。 */
+const twdOf=e=>{
+  if(e.nt!=null&&e.nt>0) return e.nt;
+  const r=rateOfDay(e.d);
+  return r==null?null:e.a*r;
+};
+/* 有沒有齊全到可以用台幣結算：只要有一筆換不出來就不行，
+   否則少算的那筆會變成別人的損失 */
+const twdReady=()=>expLive().every(e=>twdOf(e)!=null);
+/* 真正需要匯率的日期：只有用韓元記的帳才需要，台幣輸入的那幾筆不算 */
+const fxNeed=()=>{
+  const s=new Set();
+  expLive().forEach(e=>{ if(!(e.nt!=null&&e.nt>0)&&DAY_DATE[e.d]) s.add(DAY_DATE[e.d]); });
+  return [...s];
+};
+
 logDay.innerHTML=LOG_DAYS.map(d=>`<option value="${d.n}">Day ${d.n} · ${esc(d.date)}</option>`).join("");
 logDay.value=String(dayIndex()<0?0:DAYS[dayIndex()].n);
 logCat.innerHTML=CATS.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("");
@@ -1692,7 +1747,7 @@ function recClean(arr){
     if(x.t==="pay"){
       const by=String(x.by||""), to=String(x.to||"");
       if(!by||!to) return;
-      const r={id,t:"pay",by,to,a,at}; if(del) r.del=1;
+      const r={id,t:"pay",by,to,a,at}; if(del) r.del=1; if(x.tw) r.tw=1;
       out.push(r); return;
     }
     const r={id,d:isFinite(+x.d)?+x.d:0,c:CATS.includes(x.c)?x.c:"其他",
@@ -1758,19 +1813,31 @@ if(claimOrphans()) logSave();
 
 /* ── 結算 ──
    每筆消費：付款人先墊了全額，分攤人各欠一份。
-   還款紀錄（t:"pay"）反向沖銷。加總永遠是零和。 */
+   還款紀錄（t:"pay"）反向沖銷。加總永遠是零和。
+
+   匯率湊齊時整個結算改用台幣：每筆按「消費當天」的匯率換算，因為刷卡是
+   當天結匯的。用同一個匯率算的話，匯率波動會變成某個人的損失。
+   還沒湊齊就退回韓元，數字仍然正確，只是沒有把波動算進去。 */
 function balances(){
+  const twd=twdReady();
   const b={};
   const touch=id=>{ if(id&&b[id]===undefined) b[id]=0; };
   memLive().forEach(m=>{ b[m.id]=0; });
   expLive().forEach(e=>{
     touch(e.by); shareOf(e).forEach(touch);
     const sh=shareOf(e); if(!sh.length) return;
-    const per=e.a/sh.length;
-    if(e.by) b[e.by]+=e.a;
+    const amt=twd?twdOf(e):e.a;
+    const per=amt/sh.length;
+    if(e.by) b[e.by]+=amt;
     sh.forEach(p=>{ b[p]-=per; });
   });
-  payLive().forEach(p=>{ touch(p.by); touch(p.to); b[p.by]+=p.a; b[p.to]-=p.a; });
+  payLive().forEach(p=>{
+    touch(p.by); touch(p.to);
+    /* 還款紀錄記的幣別跟當時的結算模式一致（tw:1 就是台幣） */
+    const a=twd ? (p.tw?p.a:(RATE!=null?p.a*RATE:p.a))
+                : (p.tw?(RATE!=null?p.a/RATE:p.a):p.a);
+    b[p.by]+=a; b[p.to]-=a;
+  });
   return b;
 }
 /* 貪婪法：每次讓最該收錢的人跟最該付錢的人對沖。
@@ -1885,6 +1952,8 @@ function viewSplit(){
 
 function viewBal(){
   if(!memLive().length) return '<div class="log-empty">先在上面「成員」加入同行的人，才能結算</div>';
+  const twd=twdReady();
+  const cur=v=>twd?("NT$"+nfmt(v)):("₩"+nfmt(v));
   const b=balances();
   const ids=Object.keys(b).sort((x,y)=>b[y]-b[x]);
   const max=Math.max(1,...ids.map(i=>Math.abs(b[i])));
@@ -1893,7 +1962,7 @@ function viewBal(){
     return `<div class="bal-r">
       <div class="bal-top">
         <span class="bal-n">${esc(memName(id))}${id===me?"<em>ME</em>":""}</span>
-        <span class="bal-v ${cls}">${v>=1?"+":v<=-1?"−":""}₩${nfmt(Math.abs(v))}</span>
+        <span class="bal-v ${cls}">${v>=1?"+":v<=-1?"−":""}${cur(Math.abs(v))}</span>
       </div>
       <div class="bal-bar"><span class="${cls}" style="width:${Math.round(Math.abs(b[id])/max*100)}%"></span></div>
     </div>`;
@@ -1901,9 +1970,8 @@ function viewBal(){
   const tr=settle(b);
   const st=tr.length
     ? tr.map(t=>`<div class="st-r">
-        <div class="st-t"><i>${esc(memName(t.from))}</i> 要付給 <i>${esc(memName(t.to))}</i> <b>₩${nfmt(t.a)}</b></div>
-        ${RATE==null?"":`<div class="bal-note">≈ NT$${nfmt(t.a*RATE)}</div>`}
-        <div class="st-a"><button class="btn" data-pf="${esc(t.from)}" data-pt="${esc(t.to)}" data-pa="${t.a}" type="button">已付款完成</button></div>
+        <div class="st-t"><i>${esc(memName(t.from))}</i> 要付給 <i>${esc(memName(t.to))}</i> <b>${cur(t.a)}</b></div>
+        <div class="st-a"><button class="btn" data-pf="${esc(t.from)}" data-pt="${esc(t.to)}" data-pa="${t.a}"${twd?' data-ptw="1"':''} type="button">已付款完成</button></div>
       </div>`).join("")
     : '<div class="bal-ok">目前不用互相轉帳</div>';
   const ps=payLive().slice().sort((x,y)=>(y.at||0)-(x.at||0));
@@ -1911,19 +1979,49 @@ function viewBal(){
       <div class="log-h"><span class="log-d">已結清</span><span class="log-sub">${ps.length} 筆</span></div>
       ${ps.map(p=>`<div class="pay-r">
         <span class="pay-t">${esc(memName(p.by))} 已付給 ${esc(memName(p.to))}</span>
-        <span class="pay-a">₩${nfmt(p.a)}</span>
+        <span class="pay-a">${p.tw?"NT$":"₩"}${nfmt(p.a)}</span>
         <button class="mem-b" data-undo="${esc(p.id)}" type="button">撤銷</button>
       </div>`).join("")}
     </section>`:"";
+  const note=twd
+    ? '正數 = 先墊了錢、應該收回。負數 = 還要付出去。<br>每一筆都用消費當天的匯率換算，所以匯率波動不會變成誰的損失。'
+    : '正數 = 先墊了錢、應該收回。負數 = 還要付出去。<br>目前用韓元結算，補齊下面的每日匯率就會改用台幣、把匯率波動算進去。';
   return `<section class="log-sec">
-    <div class="log-h"><span class="log-d">淨額</span></div>
+    <div class="log-h"><span class="log-d">淨額</span><span class="log-sub">${twd?"台幣":"韓元"}</span></div>
     ${rows}
-    <div class="bal-note txt">正數 = 先墊了錢、應該收回。負數 = 還要付出去。</div>
+    <div class="bal-note txt">${note}</div>
   </section>
   <section class="log-sec">
     <div class="log-h"><span class="log-d">結算 · 最少轉帳次數</span></div>
     ${st}
-  </section>${hist}`;
+  </section>${hist}${viewRates()}`;
+}
+
+/* 每日匯率面板：抓到什麼、缺哪幾天、可以自己改 */
+function viewRates(){
+  const used={};
+  expLive().forEach(e=>{ if(!(e.nt!=null&&e.nt>0)) used[e.d]=true; });
+  const ns=Object.keys(DAY_DATE).map(Number).sort((a,b)=>a-b);
+  const rows=ns.map(n=>{
+    const d=DAY_DATE[n], h=dayRates[d], need=!!used[n];
+    const lab=n===0?"行前":"Day "+n;
+    return `<div class="fx-r${(need&&!h)?" miss":""}">
+      <span class="fx-n">${lab}<em>${d.slice(5).replace("-","/")}</em></span>
+      <input class="fx-i" type="text" inputmode="decimal" data-fx="${d}"
+        value="${h&&h.r>0?h.r.toFixed(6):""}" placeholder="${need?"缺":"—"}" aria-label="${lab} 匯率">
+      <span class="fx-s">${h?esc(h.src||""):(need?"必填":"")}</span>
+    </div>`;
+  }).join("");
+  return `<section class="log-sec">
+    <div class="log-h"><span class="log-d">每日匯率</span><span class="log-sub">1 ₩ = ? NT$</span></div>
+    ${rows}
+    <div class="bk-row" style="margin-top:calc(var(--u)*2)">
+      <button class="btn" id="fxGet" type="button">抓 Visa 匯率</button>
+      <button class="btn" id="fxSave" type="button">儲存手動修改</button>
+    </div>
+    <div class="bk-msg" id="fxMsg"></div>
+    <div class="bal-note txt">只有用韓元記的帳需要匯率；本來就用台幣輸入的（機票、接駁那種）直接算實付金額，不受影響。手動填的不會被 Visa 蓋掉。</div>
+  </section>`;
 }
 
 function viewByCat(){
@@ -2202,9 +2300,12 @@ logList.addEventListener("click",e=>{
   /* 結算頁：把一筆轉帳記成還款紀錄，反向沖銷淨額 */
   const pf=e.target.closest("[data-pf]");
   if(pf){
-    const from=pf.dataset.pf, to=pf.dataset.pt, amt=+pf.dataset.pa;
-    if(!confirm(memName(from)+" 付給 "+memName(to)+" ₩"+nfmt(amt)+"，要記成已付款嗎？")) return;
-    logs.push({id:rid(),t:"pay",by:from,to,a:amt,at:Date.now()});
+    const from=pf.dataset.pf, to=pf.dataset.pt, amt=+pf.dataset.pa, tw=pf.dataset.ptw==="1";
+    if(!confirm(memName(from)+" 付給 "+memName(to)+" "+(tw?"NT$":"₩")+nfmt(amt)+"，要記成已付款嗎？")) return;
+    /* tw:1 記著這筆是台幣，之後切換模式才不會把幣別搞混 */
+    const rec={id:rid(),t:"pay",by:from,to,a:amt,at:Date.now()};
+    if(tw) rec.tw=1;
+    logs.push(rec);
     logSave(); logRender(); return;
   }
   const un=e.target.closest("[data-undo]");
@@ -2215,6 +2316,24 @@ logList.addEventListener("click",e=>{
       logSave(); logRender();
     }
     return;
+  }
+  /* 每日匯率面板的兩顆鍵。面板是每次 render 重建的，所以掛在委派上 */
+  const fxb=e.target.closest("#fxGet,#fxSave");
+  if(fxb){
+    const say=(t,ok)=>{ const m=document.getElementById("fxMsg");
+      if(m){ m.textContent=t; m.className="bk-msg"+(t?(ok===1?" ok":ok===0?" warn":""):""); } };
+    if(fxb.id==="fxSave"){
+      const manual={};
+      logList.querySelectorAll("[data-fx]").forEach(i=>{
+        const v=parseFloat(String(i.value).trim());
+        const old=dayRates[i.dataset.fx];
+        /* 只送真的被改過的，免得把抓下來的 visa 值全部變成「手動」 */
+        if(isFinite(v)&&v>0&&(!old||Math.abs(old.r-v)>1e-9)) manual[i.dataset.fx]=v;
+      });
+      if(!Object.keys(manual).length){ say("沒有改到任何一天",0); return; }
+      say("儲存中…"); fxSync(manual,say,false); return;
+    }
+    say("抓取中…可能要十幾秒"); fxSync(null,say,true); return;
   }
   rowsClose();   /* 點別處收起來 */
 });
@@ -2359,6 +2478,30 @@ async function syncNow(quiet){
   syBusy=false;
 }
 
+/* 每日匯率：跟記帳分開一支請求，因為後端要對外抓 Visa，慢很多也可能失敗，
+   不該拖累一般記帳同步。抓過的日期後端會永久快取，不會重複去打 Visa。 */
+async function fxSync(manual,say,pull){
+  if(!syUrl){ if(say) say("尚未設定同步網址",0); return false; }
+  try{
+    /* pull=true 才叫後端去抓 Visa。開 App 時只讀快取（dates 空），
+       否則每個人每次開都會觸發一輪對外請求，慢又浪費 Apps Script 額度 */
+    const r=await fetch(syUrl,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body:JSON.stringify({act:"rates",group:GROUP_ID,dates:pull?RATE_DATES:[],manual:manual||null})});
+    const o=await r.json();
+    if(!o||!o.ok) throw new Error((o&&o.err)||"rates");
+    dayRates=o.rates||{};
+    drSave();
+    logRender();
+    /* 只提醒真正用得到的日期，沒記帳的那幾天缺了也無所謂 */
+    const miss=fxNeed().filter(d=>!dayRates[d]).length;
+    if(say) say(miss?("已更新 · 還有 "+miss+" 天要用到卻抓不到，請手動填"):"匯率已更新 · 用得到的都齊了",miss?0:1);
+    return true;
+  }catch(_){
+    if(say) say("抓不到匯率，檢查網路或直接手動填",0);
+    return false;
+  }
+}
+
 /* 記帳或成員有任何變動就排一次同步。壓 1.5 秒讓連續修改併成一次請求 */
 function syQueue(){
   if(!syOnCfg()||syQuiet) return;
@@ -2391,6 +2534,8 @@ addEventListener("online",()=>{ if(syPend) syncNow(1); });
 
 syPaint();
 if(syOnCfg()) syncNow(0);
+/* 匯率只讀後端快取，讓每支手機看到的結算金額一致。要抓 Visa 得自己按按鈕 */
+if(syUrl) fxSync(null,null,false);
 
 
 /* ══ 手動更新 ══
