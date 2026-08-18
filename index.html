@@ -339,7 +339,7 @@ body::after{
   font-family:var(--f-title);font-size:18px;letter-spacing:.02em;
   color:var(--ink-2);line-height:1.9;margin-bottom:calc(var(--u)*2.5);
 }
-.colophon{font-family:var(--f-mono);font-size:11px;color:var(--ink-3);line-height:2;margin-top:calc(var(--u)*3);letter-spacing:.06em}
+.colophon{font-family:var(--f-title);font-size:15px;color:var(--ink-3);line-height:1.9;margin-top:calc(var(--u)*3);letter-spacing:.02em}
 /* ══ 12H FORECAST ══ 無外框，橫向捲動 */
 .fc{
   margin-top:calc(var(--u)*2);
@@ -560,6 +560,7 @@ body::after{
   font-family:var(--f-mono);font-size:10px;letter-spacing:.1em;
   color:var(--ink-3);line-height:1.8;margin-top:calc(var(--u)*1.5);
 }
+.bal-note.txt{font-family:var(--f-title);font-size:14.5px;letter-spacing:.02em;line-height:1.9}
 .st-r{
   border:1px solid var(--line);border-left:2px solid var(--gold);
   background:var(--paper-2);padding:calc(var(--u)*1.75) calc(var(--u)*2);
@@ -1878,7 +1879,7 @@ function viewSplit(){
       <span class="sp-n">${esc(memName(id))}${id===me?"<em>ME</em>":""}</span>
       <span class="sp-v"><b>₩${nfmt(paid[id])}</b>應分攤 ₩${nfmt(owe[id])}</span>
     </div>`).join("")}
-    <div class="bal-note">大字是這個人先掏出去的錢，下面小字是他該分攤的金額。<br>只列有跟別人分攤的帳，自己付自己用的不算。差額請看「結算」。</div>
+    <div class="bal-note txt">大字是這個人先掏出去的錢，下面小字是他該分攤的金額。<br>只列有跟別人分攤的帳，自己付自己用的不算。差額請看「結算」。</div>
   </section>${days}`;
 }
 
@@ -1917,7 +1918,7 @@ function viewBal(){
   return `<section class="log-sec">
     <div class="log-h"><span class="log-d">淨額</span></div>
     ${rows}
-    <div class="bal-note">正數 = 先墊了錢、應該收回。負數 = 還要付出去。</div>
+    <div class="bal-note txt">正數 = 先墊了錢、應該收回。負數 = 還要付出去。</div>
   </section>
   <section class="log-sec">
     <div class="log-h"><span class="log-d">結算 · 最少轉帳次數</span></div>
