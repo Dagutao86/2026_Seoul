@@ -30,7 +30,8 @@ function doPost(e) {
 
     var rows = mergeRows(group, Array.isArray(req.rows) ? req.rows : []);
     var mems = mergeMems(group, Array.isArray(req.mems) ? req.mems : []);
-    return out({ ok: true, rows: rows, mems: mems });
+    /* now 給手機對時用：合併是比 at 大小，手機時間不準會讓別人的修改永遠輸 */
+    return out({ ok: true, rows: rows, mems: mems, now: Date.now() });
   } catch (err) {
     return out({ ok: false, err: String(err) });
   } finally {
@@ -43,7 +44,7 @@ function doGet(e) {
   try {
     var group = String((e && e.parameter && e.parameter.group) || '').trim();
     if (!group) return out({ ok: false, err: 'no group' });
-    return out({ ok: true, rows: readRows(group), mems: readMems(group) });
+    return out({ ok: true, rows: readRows(group), mems: readMems(group), now: Date.now() });
   } catch (err) {
     return out({ ok: false, err: String(err) });
   }
@@ -101,7 +102,12 @@ function mergeRows(group, incoming) {
   var cur = readRows(group);
   var map = {};
   var order = [];
-  cur.forEach(function (r) { map[r.id] = r; order.push(r.id); });
+  /* 寫入若曾經中途失敗，同一個 id 可能留著新舊兩列。後面那列是新的，讓它蓋掉
+     前面那列，順序只記一次——否則合併結果會出現重複，而且愈滾愈多。 */
+  cur.forEach(function (r) {
+    if (map[r.id] === undefined) order.push(r.id);
+    map[r.id] = r;
+  });
 
   incoming.forEach(function (x) {
     if (!x || typeof x !== 'object') return;
@@ -132,10 +138,13 @@ function mergeRows(group, incoming) {
   return merged;
 }
 
+/* 先把新資料寫到表尾，確定落地之後才刪舊列。
+   反過來做（先刪再寫）的話，腳本要是在這兩步中間逾時或出錯，
+   這個群組的資料就整個從表上消失了。 */
 function writeRows(group, rows) {
   var sh = sheet(LEDGER, L_HEAD);
-  dropGroup(sh, group);
-  if (!rows.length) return;
+  var oldEnd = sh.getLastRow();
+  if (!rows.length) { dropGroup(sh, group, oldEnd); return; }
   var now = new Date();
   var body = rows.map(function (r) {
     return [group, r.id, r.t === 'pay' ? 'pay' : 'exp',
@@ -151,7 +160,9 @@ function writeRows(group, rows) {
             num(r.at),
             now];
   });
-  sh.getRange(sh.getLastRow() + 1, 1, body.length, L_HEAD.length).setValues(body);
+  sh.getRange(oldEnd + 1, 1, body.length, L_HEAD.length).setValues(body);
+  SpreadsheetApp.flush();
+  dropGroup(sh, group, oldEnd);
 }
 
 /* ── 成員 ── */
@@ -177,7 +188,10 @@ function readMems(group) {
 function mergeMems(group, incoming) {
   var cur = readMems(group);
   var map = {}, order = [];
-  cur.forEach(function (m) { map[m.id] = m; order.push(m.id); });
+  cur.forEach(function (m) {
+    if (map[m.id] === undefined) order.push(m.id);
+    map[m.id] = m;
+  });
 
   incoming.forEach(function (x) {
     if (!x || typeof x !== 'object') return;
@@ -199,18 +213,22 @@ function mergeMems(group, incoming) {
 
 function writeMems(group, mems) {
   var sh = sheet(MEMBERS, M_HEAD);
-  dropGroup(sh, group);
-  if (!mems.length) return;
+  var oldEnd = sh.getLastRow();
+  if (!mems.length) { dropGroup(sh, group, oldEnd); return; }
   var now = new Date();
   var body = mems.map(function (m) {
     return [group, m.id, String(m.n || ''), m.del ? '1' : '', num(m.at), now];
   });
-  sh.getRange(sh.getLastRow() + 1, 1, body.length, M_HEAD.length).setValues(body);
+  sh.getRange(oldEnd + 1, 1, body.length, M_HEAD.length).setValues(body);
+  SpreadsheetApp.flush();
+  dropGroup(sh, group, oldEnd);
 }
 
-/* 從後面往前刪，才不會邊刪邊位移 */
-function dropGroup(sh, group) {
+/* 從後面往前刪，才不會邊刪邊位移。
+   upto 是舊資料的最後一列：只刪這一列以前的，剛寫進去的新資料不能碰。 */
+function dropGroup(sh, group, upto) {
   var last = sh.getLastRow();
+  if (upto && upto < last) last = upto;
   if (last < 2) return;
   var col = sh.getRange(2, 1, last - 1, 1).getValues();
   for (var i = col.length - 1; i >= 0; i--) {

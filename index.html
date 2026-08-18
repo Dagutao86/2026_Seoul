@@ -1002,6 +1002,7 @@ body::after{
 
      <h4 class="bk-h2">CLOUD SYNC</h4>
      <div class="bk-msg" id="syMsg"></div>
+     <div class="bk-msg warn" id="syWarn" hidden></div>
      <div class="bk-row">
        <button class="btn" id="syNow" type="button" hidden>立即同步</button>
        <button class="btn" id="syCfg" type="button">設定</button>
@@ -2287,7 +2288,7 @@ bkFile.addEventListener("change",async()=>{
 const syCfg=document.getElementById("syCfg"), syNow=document.getElementById("syNow"),
       syForm=document.getElementById("syForm"), syUrlIn=document.getElementById("syUrlIn"),
       sySaveB=document.getElementById("sySave"), syOffBtn=document.getElementById("syOffBtn"),
-      syMsg=document.getElementById("syMsg");
+      syMsg=document.getElementById("syMsg"), syWarn=document.getElementById("syWarn");
 
 let syUrl=SYNC_URL||localStorage.getItem("syncUrl")||"";
 let syPend=localStorage.getItem("syncPend")==="1";
@@ -2311,6 +2312,23 @@ function syPaint(){
   else if(syPend) sySay("有變動還沒上傳",0);
 }
 
+/* 合併是比 at（各手機自己的 Date.now()）大小。某支手機時間不準的話，
+   別人之後的修改與刪除會因為 at 比較小而被伺服器永遠忽略，而且完全沒有跡象。
+   所以每次同步都拿伺服器時間對一次，差太多就直接講。 */
+const SKEW_MAX=5*60*1000;
+function syClock(srvNow,t0,t1){
+  /* 舊版後端沒有回 now，就當作沒得對，不要誤報 */
+  if(!isFinite(+srvNow)||!(+srvNow>0)) return;
+  /* 伺服器那一刻落在送出與收到之間，取中點抵掉來回延遲 */
+  const off=Math.round((t0+t1)/2-(+srvNow));
+  if(Math.abs(off)<SKEW_MAX){ syWarn.hidden=true; syWarn.textContent=""; return; }
+  const m=Math.round(Math.abs(off)/60000);
+  const dur=m>=1440?Math.round(m/1440)+" 天":m>=60?Math.round(m/60)+" 小時":m+" 分鐘";
+  syWarn.textContent="這支手機的時間比正確時間"+(off>0?"快":"慢")+"了約 "+dur+
+    "，會讓大家的修改和刪除互相失效。請到系統設定把日期與時間改成自動判定。";
+  syWarn.hidden=false;
+}
+
 async function syncNow(quiet){
   if(!syOnCfg()) return;
   /* 上一次還在跑就往後排，不要兩個請求同時改同一張表 */
@@ -2319,9 +2337,11 @@ async function syncNow(quiet){
   if(!quiet) sySay("同步中…");
   try{
     /* 刻意用 text/plain：application/json 會觸發 preflight，Apps Script 不處理 OPTIONS */
+    const t0=Date.now();
     const r=await fetch(syUrl,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},
       body:JSON.stringify({act:"sync",group:GROUP_ID,rows:logs,mems:mems})});
     const o=await r.json();
+    syClock(o&&o.now,t0,Date.now());
     if(!o||!o.ok) throw new Error((o&&o.err)||"sync");
     /* 合併結果寫回本機。syQuiet 擋住 logSave 觸發的 hook，
        否則剛拉下來的東西又會被排進上傳佇列 */
