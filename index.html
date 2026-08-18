@@ -569,6 +569,7 @@ body::after{
 .st-t b{font-family:var(--f-disp);font-weight:400;color:var(--vermilion)}
 .st-t i{font-style:normal;font-weight:700}
 .st-a{margin-top:calc(var(--u)*1.5)}
+.st-a .btn{font-family:var(--f-title);font-size:15px;letter-spacing:.03em}
 .bal-ok{
   font-family:var(--f-mono);font-size:11px;letter-spacing:.16em;
   color:var(--jade);margin-top:calc(var(--u)*3);line-height:1.8;
@@ -583,7 +584,7 @@ body::after{
 .log-tabs{display:flex;gap:calc(var(--u)*2.5);margin-top:calc(var(--u)*4)}
 .log-tab{
   appearance:none;background:none;border:none;cursor:pointer;padding:0 0 5px;
-  font-family:var(--f-mono);font-size:11px;letter-spacing:.24em;
+  font-family:var(--f-title);font-size:16px;letter-spacing:.06em;
   color:var(--ink-3);border-bottom:2px solid transparent;transition:color .25s,border-color .25s;
 }
 .log-tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--vermilion)}
@@ -1953,17 +1954,13 @@ function logRender(){
              : logMode==="bal" ? viewBal() : viewByDay();
   logList.innerHTML = html || '<div class="log-empty">還沒有紀錄</div>';
 
-  /* 標題的大數字跟「依日期／依分類」看到的一致：多人時是我分攤的總額，
-     全團總額放到副標，兩個都標清楚免得看錯 */
+  /* 標題的大數字跟「依日期／依分類」看到的一致：多人時是我分攤的總額 */
   const es=expLive(), all=es.reduce((s,x)=>s+x.a,0);
   const multi=memLive().length>1;
   const mine=Math.round(es.reduce((s,x)=>s+myShare(x),0));
   const head=(me&&multi)?mine:all;
   logSum.textContent="₩"+nfmt(head);
-  const bits=[];
-  if(RATE!=null) bits.push(twdText(head));
-  if(me&&multi) bits.push("全團 ₩"+nfmt(all));
-  logSumTwd.textContent=bits.join(" · ");
+  logSumTwd.textContent=RATE!=null?twdText(head):"";
 
   tabDay.setAttribute("aria-selected",String(logMode==="day"));
   tabCat.setAttribute("aria-selected",String(logMode==="cat"));
