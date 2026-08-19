@@ -285,12 +285,12 @@ function syncRates(dates, manual, diag) {
   for (var i = 0; i < want.length; i++) {
     var d = ymd(want[i]);
     if (!d || map[d]) continue;              /* 已經有了就不要再抓 */
-    var got = visaRate(d);
+    var got = fetchRate(d);
     if (got.r == null) {                     /* 抓不到就留空，下次再試 */
       if (diag && diag.length < 4) diag.push(d + '：' + got.err);
       continue;
     }
-    map[d] = { r: got.r, src: 'visa' };
+    map[d] = { r: got.r, src: '市場' };
     dirty = true;
   }
 
@@ -325,71 +325,58 @@ function dropRates(sh, upto) {
 /* Visa 的匯率查詢端點。這是他們網站自己用的，沒有正式文件，
    所以回應盡量寬鬆地解析，而且一定要通過合理範圍檢查才採用——
    寧可抓不到讓使用者手動填，也不要存一個錯的數字進去。 */
-/* 在 Apps Script 編輯器裡選這支來執行：
-   第一次跑會跳出授權對話框（UrlFetchApp 需要「連線至外部服務」權限，
-   當初授權時程式碼還沒有這段，所以不會自動要求）。
-   授權完它會把每個網址的實際結果印在執行紀錄裡，行不行一看就知道。 */
-function testVisa() {
+/* 在 Apps Script 編輯器裡選這支來執行，會把每個來源的實際結果印在執行紀錄裡。
+   第一次跑若跳出授權對話框（UrlFetchApp 需要「連線至外部服務」權限）就按允許。 */
+function testRate() {
   var date = '2026-08-11';
-  var p = date.split('-');
-  var md = p[1] + '/' + p[2] + '/' + p[0];
-  var qs = '/cmsapi/fx/rates?amount=1&fee=0'
-         + '&utcConvertedDate=' + encodeURIComponent(md)
-         + '&exchangedate=' + encodeURIComponent(md)
-         + '&fromCurr=TWD&toCurr=KRW';
-  for (var i = 0; i < VISA_HOSTS.length; i++) {
-    var u = VISA_HOSTS[i] + qs;
+  var us = rateUrls(date);
+  for (var i = 0; i < us.length; i++) {
     try {
-      var res = UrlFetchApp.fetch(u, {
-        muteHttpExceptions: true, followRedirects: true,
-        headers: {
-          'Accept': 'application/json, text/plain, */*',
-          'Accept-Language': 'en-US,en;q=0.9',
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) ' +
-                        'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36'
-        }
-      });
-      Logger.log(VISA_HOSTS[i] + ' → HTTP ' + res.getResponseCode());
-      Logger.log('  ' + res.getContentText().substring(0, 300));
+      var res = UrlFetchApp.fetch(us[i], { muteHttpExceptions: true, followRedirects: true });
+      Logger.log(us[i] + '\n  → HTTP ' + res.getResponseCode()
+                 + '\n  ' + res.getContentText().substring(0, 200));
     } catch (err) {
-      Logger.log(VISA_HOSTS[i] + ' → 例外：' + err);
+      Logger.log(us[i] + '\n  → 例外：' + err);
     }
   }
-  Logger.log('解析結果：' + JSON.stringify(visaRate(date)));
+  Logger.log('解析結果（已含 ' + ((MARKET_MARKUP - 1) * 100).toFixed(1) + '% 加價）：'
+             + JSON.stringify(fetchRate(date)));
 }
 
-var VISA_HOSTS = ['https://usa.visa.com', 'https://www.visa.com.tw', 'https://www.visa.com.sg'];
+/* 市場中價要加一點才接近刷卡實際結匯的匯率。
+   Visa 擋伺服器查詢（三個網域都回 Cloudflare 403），所以改用市場匯率近似。
+   這是每 1 韓元要付的台幣，加價 = 對持卡人略差，方向才對。 */
+var MARKET_MARKUP = 1.006;
 
-function visaRate(date) {
-  var p = date.split('-');
-  var md = p[1] + '/' + p[2] + '/' + p[0];
-  var qs = '/cmsapi/fx/rates?amount=1&fee=0'
-         + '&utcConvertedDate=' + encodeURIComponent(md)
-         + '&exchangedate=' + encodeURIComponent(md)
-         + '&fromCurr=TWD&toCurr=KRW';
+/* 免金鑰、有歷史資料、CDN 供應所以不會擋伺服器。
+   兩種回應格式都吃：{"krw":{"twd":0.023}} 與 {"twd":0.023} */
+function rateUrls(date) {
+  return [
+    'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@' + date + '/v1/currencies/krw.json',
+    'https://' + date + '.currency-api.pages.dev/v1/currencies/krw.json',
+    'https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/' + date + '/currencies/krw/twd.json'
+  ];
+}
+
+function fetchRate(date) {
+  var us = rateUrls(date);
   var last = '沒有可用的來源';
-  for (var i = 0; i < VISA_HOSTS.length; i++) {
+  for (var i = 0; i < us.length; i++) {
     try {
-      var res = UrlFetchApp.fetch(VISA_HOSTS[i] + qs, {
-        muteHttpExceptions: true, followRedirects: true,
-        headers: {
-          'Accept': 'application/json, text/plain, */*',
-          'Accept-Language': 'en-US,en;q=0.9',
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) ' +
-                        'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36'
-        }
-      });
+      var res = UrlFetchApp.fetch(us[i], { muteHttpExceptions: true, followRedirects: true });
       var code = res.getResponseCode();
       if (code !== 200) { last = 'HTTP ' + code; continue; }
       var body = res.getContentText();
       var o;
       try { o = JSON.parse(body); }
       catch (e) { last = '回應不是 JSON（' + body.substring(0, 40) + '…）'; continue; }
-      var v = pickRate(o);
-      if (v == null) { last = '找不到匯率欄位（' + Object.keys(o).join(',').substring(0, 40) + '）'; continue; }
-      /* 換算方向不確定：KRW→TWD 約 0.023、TWD→KRW 約 43。
-         兩者差三個數量級，用大小就分得出來，該倒過來就倒過來。 */
-      var rate = v > 1 ? 1 / v : v;
+      var v = Number((o.krw && o.krw.twd) != null ? o.krw.twd : o.twd);
+      if (!isFinite(v) || v <= 0) {
+        last = '找不到 twd 欄位（' + Object.keys(o).join(',').substring(0, 40) + '）';
+        continue;
+      }
+      /* 方向保險：KRW→TWD 約 0.023、反過來約 43，差三個數量級，錯了就倒回來 */
+      var rate = (v > 1 ? 1 / v : v) * MARKET_MARKUP;
       if (rate < 0.005 || rate > 0.1) { last = '數字不合理（' + v + '）'; continue; }
       return { r: rate, err: '' };
     } catch (err) {
@@ -397,20 +384,6 @@ function visaRate(date) {
     }
   }
   return { r: null, err: last };
-}
-
-function pickRate(o) {
-  if (!o || typeof o !== 'object') return null;
-  var names = ['conversionRate', 'fxRateVisa', 'fxRateWithAdditionalFee', 'convertedAmount'];
-  for (var i = 0; i < names.length; i++) {
-    var v = Number(o[names[i]]);
-    if (isFinite(v) && v > 0) return v;
-    if (o.originalValues) {
-      var v2 = Number(o.originalValues[names[i]]);
-      if (isFinite(v2) && v2 > 0) return v2;
-    }
-  }
-  return null;
 }
 
 /* 從後面往前刪，才不會邊刪邊位移。
