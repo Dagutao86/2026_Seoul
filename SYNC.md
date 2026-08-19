@@ -90,6 +90,21 @@ const SYNC_URL="";
 
 ---
 
+## 抓匯率需要「連線至外部服務」權限
+
+抓 Visa 匯率用的是 `UrlFetchApp`，需要 `script.external_request` 權限。當初授權時程式碼還沒這段，Apps Script 不會自動重新要求，會一直回「你沒有呼叫 UrlFetchApp.fetch 的權限」。
+
+解法是在資訊清單裡明確宣告權限，逼它重新授權：
+
+1. Apps Script 編輯器左邊 **專案設定**（齒輪）→ 勾選**在編輯器中顯示「appsscript.json」資訊清單檔案**
+2. 回到編輯器，左邊會多出 `appsscript.json`，把 repo 裡同名檔案的內容整個貼上去蓋掉，存檔
+3. 函式下拉選單選 **`testVisa`** → **執行** → 這次會跳出授權對話框
+   → 選帳號 → 「Google 尚未驗證這個應用程式」點**進階 → 前往專案 (不安全)** → **允許**
+4. 看**執行記錄**，會印出三個網址各自的 HTTP 狀態與回應
+5. 最後 **部署 → 管理部署作業 → 鉛筆 → 新版本 → 部署**，讓線上的網頁 App 也帶著新權限
+
+`appsscript.json` 裡的 `spreadsheets` 是記帳同步本來就要的，`script.external_request` 才是抓匯率新增的，兩個都要留著。
+
 ## 之後更新後端程式碼
 
 `apps-script.gs` 改過的話，要手動同步到 Apps Script，網站才吃得到：
