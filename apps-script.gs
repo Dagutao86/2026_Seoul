@@ -325,6 +325,39 @@ function dropRates(sh, upto) {
 /* Visa 的匯率查詢端點。這是他們網站自己用的，沒有正式文件，
    所以回應盡量寬鬆地解析，而且一定要通過合理範圍檢查才採用——
    寧可抓不到讓使用者手動填，也不要存一個錯的數字進去。 */
+/* 在 Apps Script 編輯器裡選這支來執行：
+   第一次跑會跳出授權對話框（UrlFetchApp 需要「連線至外部服務」權限，
+   當初授權時程式碼還沒有這段，所以不會自動要求）。
+   授權完它會把每個網址的實際結果印在執行紀錄裡，行不行一看就知道。 */
+function testVisa() {
+  var date = '2026-08-11';
+  var p = date.split('-');
+  var md = p[1] + '/' + p[2] + '/' + p[0];
+  var qs = '/cmsapi/fx/rates?amount=1&fee=0'
+         + '&utcConvertedDate=' + encodeURIComponent(md)
+         + '&exchangedate=' + encodeURIComponent(md)
+         + '&fromCurr=TWD&toCurr=KRW';
+  for (var i = 0; i < VISA_HOSTS.length; i++) {
+    var u = VISA_HOSTS[i] + qs;
+    try {
+      var res = UrlFetchApp.fetch(u, {
+        muteHttpExceptions: true, followRedirects: true,
+        headers: {
+          'Accept': 'application/json, text/plain, */*',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) ' +
+                        'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36'
+        }
+      });
+      Logger.log(VISA_HOSTS[i] + ' → HTTP ' + res.getResponseCode());
+      Logger.log('  ' + res.getContentText().substring(0, 300));
+    } catch (err) {
+      Logger.log(VISA_HOSTS[i] + ' → 例外：' + err);
+    }
+  }
+  Logger.log('解析結果：' + JSON.stringify(visaRate(date)));
+}
+
 var VISA_HOSTS = ['https://usa.visa.com', 'https://www.visa.com.tw', 'https://www.visa.com.sg'];
 
 function visaRate(date) {
