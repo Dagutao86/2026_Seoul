@@ -339,6 +339,33 @@ body::after{
   font-family:var(--f-title);font-size:18px;letter-spacing:.02em;
   color:var(--ink-2);line-height:1.9;margin-bottom:calc(var(--u)*2.5);
 }
+/* 出發前要裝的 App。同行有 Android 也有 iPhone，兩邊連結都給 */
+.app-h{
+  font-family:var(--f-mono);font-size:10.5px;letter-spacing:.34em;color:var(--jade);
+  font-weight:400;margin:calc(var(--u)*4) 0 calc(var(--u)*2);
+}
+.app-r{
+  display:flex;align-items:center;justify-content:space-between;gap:var(--u);
+  padding:calc(var(--u)*1.5) 0;border-bottom:1px solid var(--line);
+}
+.app-n{
+  flex:1 1 auto;min-width:0;font-family:var(--f-title);font-size:17px;
+  letter-spacing:.02em;color:var(--ink);line-height:1.5;
+}
+.app-n em{
+  display:block;font-style:normal;font-family:var(--f-title);
+  font-size:14px;color:var(--ink-3);margin-top:2px;
+}
+.app-l{flex:0 0 auto;display:flex;gap:6px;white-space:nowrap}
+.app-l a{
+  font-family:var(--f-mono);font-size:10.5px;letter-spacing:.12em;
+  color:var(--ink-2);background:var(--paper-2);border:1px solid var(--line-2);
+  padding:5px 9px;text-decoration:none;
+  transition:background .25s,color .25s,border-color .25s;
+}
+.app-l a:hover{background:var(--jade);border-color:var(--jade);color:#fff}
+.app-l a:focus-visible{outline:1px solid var(--jade);outline-offset:2px}
+
 .colophon{font-family:var(--f-title);font-size:15px;color:var(--ink-3);line-height:1.9;margin-top:calc(var(--u)*3);letter-spacing:.02em}
 /* ══ 12H FORECAST ══ 無外框，橫向捲動 */
 .fc{
@@ -882,7 +909,7 @@ body::after{
     <h4>MEMO · 備忘</h4>
     <dl>
       <dt>TRANSIT</dt>
-      <dd>抵達後在弘大入口站辦 WOWPASS（含交通卡功能）。住宿走到弘大入口站約 8 分鐘、新村站約 13 分鐘，兩站都在 2 號線上；聖水洞、蠶室都是 2 號線直達不用轉車，廣藏市場與東大門要轉 1 號線。</dd>
+      <dd>交通卡在金浦機場的 LG U+ 櫃檯領，WOWPASS 另外在弘大入口站辦，用來換錢與領現金。住宿走到弘大入口站約 8 分鐘、新村站約 13 分鐘，兩站都在 2 號線上；聖水洞、蠶室都是 2 號線直達不用轉車，廣藏市場與東大門要轉 1 號線。</dd>
       <dt>TAX REFUND</dt>
       <dd>單筆滿額可退稅，留好護照與收據，機場有退稅機。</dd>
       <dt>LUGGAGE</dt>
@@ -890,6 +917,21 @@ body::after{
       <dt>WEATHER</dt>
       <dd>8 月首爾悶熱、紫外線強：防曬、帽子、小風扇、輕便雨具。</dd>
     </dl>
+    <h4 class="app-h">APPS · 出發前先裝好</h4>
+    <div class="app-r">
+      <span class="app-n">Naver Map<em>韓國地圖導航，Google Map 在韓國不能導航</em></span>
+      <span class="app-l">
+        <a href="https://apps.apple.com/tw/app/id311867728" target="_blank" rel="noopener">iOS</a>
+        <a href="https://play.google.com/store/apps/details?id=com.nhn.android.nmap" target="_blank" rel="noopener">Android</a>
+      </span>
+    </div>
+    <div class="app-r">
+      <span class="app-n">Papago<em>翻譯，可以拍菜單直接翻</em></span>
+      <span class="app-l">
+        <a href="https://apps.apple.com/tw/app/id1147874819" target="_blank" rel="noopener">iOS</a>
+        <a href="https://play.google.com/store/apps/details?id=com.naver.labs.translator" target="_blank" rel="noopener">Android</a>
+      </span>
+    </div>
     <p class="colophon">點地點開啟 Naver Map ／ 氣溫為 Open-Meteo 即時資料 ／ 登機門與行李轉盤當天於機場螢幕確認</p>
   </footer>
  </div>
@@ -1098,10 +1140,10 @@ const DAYS=[
   {when:"20:15",key:true,h:"LG U+ 領交通卡 · SIM 實名認證",p:"國際線入境層的 LG U+ 櫃檯，領交通卡並辦 SIM 實名認證。認證沒做門號不會通，護照要拿在手上。落地 19:45、出關抓 30–40 分鐘（推算），到櫃檯大概 20:15，跟接送車的時間很接近——櫃檯營業到幾點先自己查好，會晚到就先跟司機說一聲。",spots:["김포공항 LG유플러스"]},
   {when:"20:30",h:"接送車到民宿",p:"訂了金浦機場到民宿的接送，不用自己拖行李轉 AREX。車程看當晚路況，抓 30–40 分鐘。"},
   {when:"21:30",h:"弘大宵夜",p:"Check-in 放行李後就近覓食。弘大這一帶餐廳開到很晚，第一晚不用排太多。弘大入口站走 9 號出口，出來就是商圈。",spots:["홍대 맛집"]},
-  {when:"晚上",h:"弘大站買 WOWPASS（可略）",p:"交通卡機場已經領到了，這張只剩換錢儲值的功能，不辦也能搭車。弘大入口站有機台，想辦就辦，太晚或太累留到隔天都沒差。",spots:["홍대입구역"]},
+  {when:"晚上",h:"弘大站辦 WOWPASS",p:"主要是拿來換錢與領現金，交通卡機場已經領到了。弘大入口站有機台，太晚或太累就留到隔天早上出門前辦，不影響搭車。",spots:["홍대입구역"]},
   {when:"睡前",h:"回民宿",p:"Seoul Seodaemun-gu Sinchon-ro 3na-gil 3。走弘大入口站約 8 分鐘、新村站約 13 分鐘。點下方地址開 Naver Map，再按導航就會帶路。",spots:["서울 서대문구 신촌로3나길 3"]}
  ],
- memo:{t:"抵達當天",b:"19:45 落地，先到 LG U+ 櫃檯領交通卡、辦 SIM 實名認證，護照拿在手上——沒認證門號不會通。落地時間偏晚，櫃檯營業到幾點先查好。辦完搭接送直達民宿，不用趕 AREX，今晚只安排 check-in 跟宵夜。交通卡機場就有了，弘大的 WOWPASS 只剩換錢用，不急。座位 13B。"}},
+ memo:{t:"抵達當天",b:"19:45 落地，先到 LG U+ 櫃檯領交通卡、辦 SIM 實名認證，護照拿在手上——沒認證門號不會通。落地時間偏晚，櫃檯營業到幾點先查好。辦完搭接送直達民宿，不用趕 AREX，今晚只安排 check-in 跟宵夜。WOWPASS 換錢領現金用，今晚或隔天早上都行。座位 13B。"}},
 
 {n:2,date:"8/21",dow:"五",city:"SEOUL",...LOC.seongsu,title:"證件照 · 聖水洞",stay:"宿 · 弘大",
  events:[
