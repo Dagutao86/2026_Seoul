@@ -32,7 +32,7 @@ function doPost(e) {
     /* 每日匯率：跟記帳分開走，因為要對外抓 Visa，比較慢也比較容易失敗 */
     if (req.act === 'rates') {
       var diag = [];
-      var rr = syncRates(req.dates, req.manual, diag);
+      var rr = syncRates(req.dates, req.manual, diag, req.clear);
       return out({ ok: true, rates: rr, diag: diag, now: Date.now() });
     }
     if (req.act !== 'sync') return out({ ok: false, err: 'unknown act' });
@@ -257,18 +257,29 @@ function readRates() {
   return map;
 }
 
-/* 試算表可能把日期存成 Date 物件也可能是字串，統一成 YYYY-MM-DD */
+/* 試算表可能把日期存成 Date 物件也可能是字串，統一成 YYYY-MM-DD。
+   Date 一定要用「試算表的時區」格式化：純日期儲存格存的是該時區的午夜，
+   用 UTC 格式化的話台北時間會倒退一天，匯率就永遠對不到日期。 */
 function ymd(v) {
   if (v instanceof Date) {
-    return Utilities.formatDate(v, 'UTC', 'yyyy-MM-dd');
+    var tz = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone() || 'Asia/Taipei';
+    return Utilities.formatDate(v, tz, 'yyyy-MM-dd');
   }
   var s = String(v || '').trim();
   return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : '';
 }
 
-function syncRates(dates, manual, diag) {
+function syncRates(dates, manual, diag, clear) {
   var map = readRates();
   var dirty = false;
+
+  /* 清除：把某幾天整個拿掉，下次按自動抓就會重新去抓 */
+  if (Array.isArray(clear)) {
+    for (var c = 0; c < clear.length; c++) {
+      var cd = ymd(clear[c]);
+      if (cd && map[cd]) { delete map[cd]; dirty = true; }
+    }
+  }
 
   /* 手動輸入的先寫進去，之後就不會再被 Visa 蓋掉 */
   if (manual && typeof manual === 'object') {
@@ -310,6 +321,9 @@ function writeRates(map) {
   var body = keys.map(function (d) {
     return [d, map[d].r, map[d].src || '', now];
   });
+  /* 日期欄先設成純文字，否則 Sheets 會把 '2026-08-11' 轉成日期值，
+     讀回來變成 Date 還要跟時區纏鬥 */
+  sh.getRange(oldEnd + 1, 1, body.length, 1).setNumberFormat('@');
   sh.getRange(oldEnd + 1, 1, body.length, R_HEAD.length).setValues(body);
   SpreadsheetApp.flush();
   dropRates(sh, oldEnd);

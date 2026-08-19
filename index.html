@@ -594,6 +594,14 @@ body::after{
   flex:0 0 38px;font-family:var(--f-title);font-size:13px;letter-spacing:.02em;
   color:var(--ink-3);text-align:right;white-space:nowrap;overflow:hidden;
 }
+.fx-x,.fx-x-sp{flex:0 0 34px}
+.fx-x{
+  appearance:none;background:none;border:none;cursor:pointer;padding:2px 0;
+  font-family:var(--f-title);font-size:13px;color:var(--ink-3);
+  text-align:right;white-space:nowrap;
+}
+.fx-x:hover{color:var(--vermilion)}
+.fx-x:focus-visible{outline:1px solid var(--jade);outline-offset:1px}
 #fxGet,#fxSave{font-family:var(--f-title);font-size:15px;letter-spacing:.03em}
 .bal-ok{
   font-family:var(--f-mono);font-size:11px;letter-spacing:.16em;
@@ -1718,6 +1726,26 @@ const twdOf=e=>{
 /* 有沒有齊全到可以用台幣結算：只要有一筆換不出來就不行，
    否則少算的那筆會變成別人的損失 */
 const twdReady=()=>expLive().every(e=>twdOf(e)!=null);
+/* 我在這筆裡分攤到多少台幣。換不出來回 null */
+const myShareTwd=e=>{
+  const sh=shareOf(e);
+  if(!(me&&sh.indexOf(me)>=0)) return 0;
+  const t=twdOf(e);
+  return t==null?null:t/sh.length;
+};
+/* 一組消費值多少台幣。每日匯率湊得齊就用它，湊不齊退回即時匯率，
+   兩者都不行就回 null 讓呼叫端不要顯示台幣。
+   顯示用的台幣要跟結算同一套算法，不然畫面上的數字會互相打架。 */
+function twdList(list,mine){
+  let s=0;
+  for(let i=0;i<list.length;i++){
+    const t=mine?myShareTwd(list[i]):twdOf(list[i]);
+    if(t==null) return null;
+    s+=t;
+  }
+  return s;
+}
+
 /* 真正需要匯率的日期：只有用韓元記的帳才需要，台幣輸入的那幾筆不算 */
 const fxNeed=()=>{
   const s=new Set();
@@ -1901,8 +1929,11 @@ function viewByDay(){
   return LOG_DAYS.map(d=>{
     const items=by[d.n]; if(!items||!items.length) return "";
     const sub=Math.round(items.reduce((s,x)=>s+myShare(x),0));
+    /* 台幣換算走每日匯率，湊不齊才退回即時匯率 */
+    const tw=twdList(items,true);
+    const twTxt=tw!=null?("≈ NT$"+nfmt(tw)):(RATE!=null?twdText(sub):"");
     return `<section class="log-sec">
-      <div class="log-h"><span class="log-d">DAY ${d.n} · ${esc(d.date)}</span><span class="log-sub">₩${nfmt(sub)}${RATE==null?"":`<em class="log-sub-t">${twdText(sub)}</em>`}</span></div>
+      <div class="log-h"><span class="log-d">DAY ${d.n} · ${esc(d.date)}</span><span class="log-sub">₩${nfmt(sub)}${twTxt?`<em class="log-sub-t">${twTxt}</em>`:""}</span></div>
       ${items.map(x=>logRow(x,true)).join("")}
     </section>`;
   }).join("");
@@ -2012,6 +2043,8 @@ function viewRates(){
       <input class="fx-i" type="text" inputmode="decimal" data-fx="${d}"
         value="${h&&h.r>0?h.r.toFixed(6):""}" placeholder="${need?"缺":"—"}" aria-label="${lab} 匯率">
       <span class="fx-s">${h?esc(h.src||""):(need?"必填":"")}</span>
+      ${h?`<button class="fx-x" data-fxdel="${d}" type="button" aria-label="清除 ${lab} 匯率">清除</button>`
+        :'<span class="fx-x-sp"></span>'}
     </div>`;
   }).join("");
   return `<section class="log-sec">
@@ -2029,13 +2062,21 @@ function viewRates(){
 function viewByCat(){
   const warn=needMe(); if(warn) return warn;
   const by={}; let total=0;
+  const items={};
   mineOnly().forEach(e=>{
     const c=catOf(e), v=myShare(e);
     by[c]=by[c]||{sum:0,n:0};
     by[c].sum+=v; by[c].n++; total+=v;
+    (items[c]=items[c]||[]).push(e);
   });
   const rows=CATS.filter(c=>by[c]).sort((a,b)=>by[b].sum-by[a].sum);
   if(!rows.length) return "";
+  /* 台幣換算走每日匯率，跟結算頁同一套；湊不齊才退回即時匯率 */
+  const twdCat={};
+  rows.forEach(c=>{
+    const t=twdList(items[c],true);
+    twdCat[c]=t!=null?t:(RATE!=null?by[c].sum*RATE:null);
+  });
   return `<section class="log-sec">
     <div class="log-h"><span class="log-d">我的分類統計</span><span class="log-sub">₩${nfmt(total)}</span></div>
     ${rows.map(c=>{
@@ -2043,7 +2084,7 @@ function viewByCat(){
       return `<div class="cat-r">
         <div class="cat-top"><span class="cat-n">${esc(c)}</span><span class="cat-v">₩${nfmt(sum)}</span></div>
         <div class="cat-bar"><span style="width:${pct}%"></span></div>
-        <div class="cat-meta"><span>${n} 筆 · ${pct}%</span><span>${RATE==null?"":"≈ NT$"+nfmt(sum*RATE)}</span></div>
+        <div class="cat-meta"><span>${n} 筆 · ${pct}%</span><span>${twdCat[c]==null?"":"≈ NT$"+nfmt(twdCat[c])}</span></div>
       </div>`;
     }).join("")}
   </section>`;
@@ -2061,7 +2102,10 @@ function logRender(){
   const mine=Math.round(es.reduce((s,x)=>s+myShare(x),0));
   const head=(me&&multi)?mine:all;
   logSum.textContent="₩"+nfmt(head);
-  logSumTwd.textContent=RATE!=null?twdText(head):"";
+  /* 標題的台幣也走每日匯率，跟下面的統計與結算對得起來 */
+  const headTwd=(me&&multi)?twdList(mineOnly(),true):twdList(es,false);
+  logSumTwd.textContent = headTwd!=null ? ("≈ NT$"+nfmt(headTwd))
+                        : (RATE!=null?twdText(head):"");
 
   tabDay.setAttribute("aria-selected",String(logMode==="day"));
   tabCat.setAttribute("aria-selected",String(logMode==="cat"));
@@ -2320,6 +2364,12 @@ logList.addEventListener("click",e=>{
     return;
   }
   /* 每日匯率面板的兩顆鍵。面板是每次 render 重建的，所以掛在委派上 */
+  const fxd=e.target.closest("[data-fxdel]");
+  if(fxd){
+    const say=(t,ok)=>{ const m=document.getElementById("fxMsg");
+      if(m){ m.textContent=t; m.className="bk-msg"+(t?(ok===1?" ok":ok===0?" warn":""):""); } };
+    say("清除中…"); fxSync(null,say,false,[fxd.dataset.fxdel]); return;
+  }
   const fxb=e.target.closest("#fxGet,#fxSave");
   if(fxb){
     const say=(t,ok)=>{ const m=document.getElementById("fxMsg");
@@ -2480,13 +2530,14 @@ async function syncNow(quiet){
 
 /* 每日匯率：跟記帳分開一支請求，因為後端要對外抓 Visa，慢很多也可能失敗，
    不該拖累一般記帳同步。抓過的日期後端會永久快取，不會重複去打 Visa。 */
-async function fxSync(manual,say,pull){
+async function fxSync(manual,say,pull,clear){
   if(!syUrl){ if(say) say("尚未設定同步網址",0); return false; }
   try{
-    /* pull=true 才叫後端去抓 Visa。開 App 時只讀快取（dates 空），
+    /* pull=true 才叫後端去抓匯率。開 App 時只讀快取（dates 空），
        否則每個人每次開都會觸發一輪對外請求，慢又浪費 Apps Script 額度 */
     const r=await fetch(syUrl,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},
-      body:JSON.stringify({act:"rates",group:GROUP_ID,dates:pull?RATE_DATES:[],manual:manual||null})});
+      body:JSON.stringify({act:"rates",group:GROUP_ID,dates:pull?RATE_DATES:[],
+        manual:manual||null,clear:clear||null})});
     const o=await r.json();
     if(!o||!o.ok) throw new Error((o&&o.err)||"rates");
     dayRates=o.rates||{};
