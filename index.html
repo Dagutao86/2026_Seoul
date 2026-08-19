@@ -594,7 +594,8 @@ body::after{
   flex:0 0 38px;font-family:var(--f-title);font-size:13px;letter-spacing:.02em;
   color:var(--ink-3);text-align:right;white-space:nowrap;overflow:hidden;
 }
-#fxGet,#fxSave{font-family:var(--f-title);font-size:15px;letter-spacing:.03em}
+#fxLink,#fxSave{font-family:var(--f-title);font-size:15px;letter-spacing:.03em}
+#fxLink{text-decoration:none;display:inline-block}
 .bal-ok{
   font-family:var(--f-mono);font-size:11px;letter-spacing:.16em;
   color:var(--jade);margin-top:calc(var(--u)*3);line-height:1.8;
@@ -2018,11 +2019,11 @@ function viewRates(){
     <div class="log-h"><span class="log-d">每日匯率</span><span class="log-sub">1 ₩ = ? NT$</span></div>
     ${rows}
     <div class="bk-row" style="margin-top:calc(var(--u)*2)">
-      <button class="btn" id="fxGet" type="button">抓 Visa 匯率</button>
-      <button class="btn" id="fxSave" type="button">儲存手動修改</button>
+      <a class="btn" id="fxLink" href="https://www.visa.com.tw/zh_TW/support/consumer/travel-support/exchange-rate-calculator.html" target="_blank" rel="noopener">查 Visa 匯率</a>
+      <button class="btn" id="fxSave" type="button">儲存</button>
     </div>
     <div class="bk-msg" id="fxMsg"></div>
-    <div class="bal-note txt">只有用韓元記的帳需要匯率；本來就用台幣輸入的（機票、接駁那種）直接算實付金額，不受影響。手動填的不會被 Visa 蓋掉。</div>
+    <div class="bal-note txt">只有用韓元記的帳需要匯率，標「必填」的才會擋住台幣結算；本來就用台幣輸入的（機票、接駁那種）直接算實付金額，不受影響。<br>Visa 擋掉伺服器自動查詢，所以請點上面的連結查好再填。填一次就會同步給所有人。</div>
   </section>`;
 }
 
@@ -2320,22 +2321,17 @@ logList.addEventListener("click",e=>{
     return;
   }
   /* 每日匯率面板的兩顆鍵。面板是每次 render 重建的，所以掛在委派上 */
-  const fxb=e.target.closest("#fxGet,#fxSave");
-  if(fxb){
+  if(e.target.closest("#fxSave")){
     const say=(t,ok)=>{ const m=document.getElementById("fxMsg");
       if(m){ m.textContent=t; m.className="bk-msg"+(t?(ok===1?" ok":ok===0?" warn":""):""); } };
-    if(fxb.id==="fxSave"){
-      const manual={};
-      logList.querySelectorAll("[data-fx]").forEach(i=>{
-        const v=parseFloat(String(i.value).trim());
-        const old=dayRates[i.dataset.fx];
-        /* 只送真的被改過的，免得把抓下來的 visa 值全部變成「手動」 */
-        if(isFinite(v)&&v>0&&(!old||Math.abs(old.r-v)>1e-9)) manual[i.dataset.fx]=v;
-      });
-      if(!Object.keys(manual).length){ say("沒有改到任何一天",0); return; }
-      say("儲存中…"); fxSync(manual,say,false); return;
-    }
-    say("抓取中…可能要十幾秒"); fxSync(null,say,true); return;
+    const manual={};
+    logList.querySelectorAll("[data-fx]").forEach(i=>{
+      const v=parseFloat(String(i.value).trim());
+      const old=dayRates[i.dataset.fx];
+      if(isFinite(v)&&v>0&&(!old||Math.abs(old.r-v)>1e-9)) manual[i.dataset.fx]=v;
+    });
+    if(!Object.keys(manual).length){ say("沒有改到任何一天",0); return; }
+    say("儲存中…"); fxSync(manual,say,false); return;
   }
   rowsClose();   /* 點別處收起來 */
 });
