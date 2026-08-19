@@ -589,10 +589,12 @@ body::after{
   text-align:right;-webkit-appearance:none;appearance:none;border-radius:0;
 }
 .fx-i:focus{outline:1px solid var(--jade);outline-offset:1px}
+.fx-i::placeholder{font-family:var(--f-title);font-size:14px;color:var(--ink-3);opacity:1}
 .fx-s{
-  flex:0 0 30px;font-family:var(--f-mono);font-size:9.5px;letter-spacing:.06em;
+  flex:0 0 38px;font-family:var(--f-title);font-size:13px;letter-spacing:.02em;
   color:var(--ink-3);text-align:right;white-space:nowrap;overflow:hidden;
 }
+#fxGet,#fxSave{font-family:var(--f-title);font-size:15px;letter-spacing:.03em}
 .bal-ok{
   font-family:var(--f-mono);font-size:11px;letter-spacing:.16em;
   color:var(--jade);margin-top:calc(var(--u)*3);line-height:1.8;
@@ -2494,7 +2496,9 @@ async function fxSync(manual,say,pull){
     logRender();
     /* 只提醒真正用得到的日期，沒記帳的那幾天缺了也無所謂 */
     const miss=fxNeed().filter(d=>!dayRates[d]).length;
-    if(say) say(miss?("已更新 · 還有 "+miss+" 天要用到卻抓不到，請手動填"):"匯率已更新 · 用得到的都齊了",miss?0:1);
+    /* 抓失敗時把後端回報的原因帶出來，不然只看到「抓不到」無從查起 */
+    const why=(o.diag&&o.diag.length)?("｜"+o.diag[0]):"";
+    if(say) say(miss?("還有 "+miss+" 天要用到卻抓不到，請手動填"+why):"匯率已更新 · 用得到的都齊了",miss?0:1);
     return true;
   }catch(_){
     if(say) say("抓不到匯率，檢查網路或直接手動填",0);

@@ -31,7 +31,9 @@ function doPost(e) {
 
     /* 每日匯率：跟記帳分開走，因為要對外抓 Visa，比較慢也比較容易失敗 */
     if (req.act === 'rates') {
-      return out({ ok: true, rates: syncRates(req.dates, req.manual), now: Date.now() });
+      var diag = [];
+      var rr = syncRates(req.dates, req.manual, diag);
+      return out({ ok: true, rates: rr, diag: diag, now: Date.now() });
     }
     if (req.act !== 'sync') return out({ ok: false, err: 'unknown act' });
 
@@ -264,7 +266,7 @@ function ymd(v) {
   return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : '';
 }
 
-function syncRates(dates, manual) {
+function syncRates(dates, manual, diag) {
   var map = readRates();
   var dirty = false;
 
@@ -284,8 +286,11 @@ function syncRates(dates, manual) {
     var d = ymd(want[i]);
     if (!d || map[d]) continue;              /* 已經有了就不要再抓 */
     var got = visaRate(d);
-    if (got == null) continue;               /* 抓不到就留空，下次再試 */
-    map[d] = { r: got, src: 'visa' };
+    if (got.r == null) {                     /* 抓不到就留空，下次再試 */
+      if (diag && diag.length < 4) diag.push(d + '：' + got.err);
+      continue;
+    }
+    map[d] = { r: got.r, src: 'visa' };
     dirty = true;
   }
 
@@ -320,31 +325,45 @@ function dropRates(sh, upto) {
 /* Visa 的匯率查詢端點。這是他們網站自己用的，沒有正式文件，
    所以回應盡量寬鬆地解析，而且一定要通過合理範圍檢查才採用——
    寧可抓不到讓使用者手動填，也不要存一個錯的數字進去。 */
+var VISA_HOSTS = ['https://usa.visa.com', 'https://www.visa.com.tw', 'https://www.visa.com.sg'];
+
 function visaRate(date) {
   var p = date.split('-');
   var md = p[1] + '/' + p[2] + '/' + p[0];
-  var url = 'https://www.visa.com.tw/cmsapi/fx/rates'
-          + '?amount=1&fee=0'
-          + '&utcConvertedDate=' + encodeURIComponent(md)
-          + '&exchangedate=' + encodeURIComponent(md)
-          + '&fromCurr=TWD&toCurr=KRW';
-  try {
-    var res = UrlFetchApp.fetch(url, {
-      muteHttpExceptions: true, followRedirects: true,
-      headers: { 'Accept': 'application/json', 'User-Agent': 'Mozilla/5.0' }
-    });
-    if (res.getResponseCode() !== 200) return null;
-    var o = JSON.parse(res.getContentText());
-    var v = pickRate(o);
-    if (v == null) return null;
-    /* 換算方向不確定：KRW→TWD 約 0.023、TWD→KRW 約 43。
-       兩者差三個數量級，用大小就分得出來，該倒過來就倒過來。 */
-    var rate = v > 1 ? 1 / v : v;
-    if (rate < 0.005 || rate > 0.1) return null;
-    return rate;
-  } catch (err) {
-    return null;
+  var qs = '/cmsapi/fx/rates?amount=1&fee=0'
+         + '&utcConvertedDate=' + encodeURIComponent(md)
+         + '&exchangedate=' + encodeURIComponent(md)
+         + '&fromCurr=TWD&toCurr=KRW';
+  var last = '沒有可用的來源';
+  for (var i = 0; i < VISA_HOSTS.length; i++) {
+    try {
+      var res = UrlFetchApp.fetch(VISA_HOSTS[i] + qs, {
+        muteHttpExceptions: true, followRedirects: true,
+        headers: {
+          'Accept': 'application/json, text/plain, */*',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) ' +
+                        'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36'
+        }
+      });
+      var code = res.getResponseCode();
+      if (code !== 200) { last = 'HTTP ' + code; continue; }
+      var body = res.getContentText();
+      var o;
+      try { o = JSON.parse(body); }
+      catch (e) { last = '回應不是 JSON（' + body.substring(0, 40) + '…）'; continue; }
+      var v = pickRate(o);
+      if (v == null) { last = '找不到匯率欄位（' + Object.keys(o).join(',').substring(0, 40) + '）'; continue; }
+      /* 換算方向不確定：KRW→TWD 約 0.023、TWD→KRW 約 43。
+         兩者差三個數量級，用大小就分得出來，該倒過來就倒過來。 */
+      var rate = v > 1 ? 1 / v : v;
+      if (rate < 0.005 || rate > 0.1) { last = '數字不合理（' + v + '）'; continue; }
+      return { r: rate, err: '' };
+    } catch (err) {
+      last = String(err).substring(0, 60);
+    }
   }
+  return { r: null, err: last };
 }
 
 function pickRate(o) {
