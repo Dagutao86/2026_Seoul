@@ -223,6 +223,12 @@ body::after{
 .card h3{font-family:var(--f-title);font-weight:700;font-size:25.5px;letter-spacing:.04em;line-height:1.5;color:var(--ink)}
 .card p{font-family:var(--f-title);font-size:20px;color:var(--ink-2);line-height:1.9;letter-spacing:.02em;margin-top:calc(var(--u)*.75)}
 
+.card .link{
+  display:inline-block;margin-top:calc(var(--u)*.75);
+  font-family:var(--f-title);font-size:16px;letter-spacing:.02em;
+  color:var(--jade);text-decoration:none;border-bottom:1px solid rgba(47,120,99,.4);
+}
+.card .link:hover{color:var(--ink)}
 .spots{display:flex;flex-wrap:wrap;gap:6px;margin-top:calc(var(--u)*1.75)}
 .spot{
   display:inline-flex;align-items:center;gap:5px;padding:4px 10px;
@@ -1136,7 +1142,7 @@ const DAYS=[
  events:[
   {when:"12:15",key:true,h:"崑山科大出發",p:"搭機場接送直達小港機場，不用轉車。國道 1 號南下約 60–70 公里，路況順暢約 60–70 分鐘，預計 13:15–13:30 抵達，離 16:00 起飛約兩個半小時，報到出境時間充裕。"},
   {flight:"out",key:true,when:"16:00"},
-  {when:"19:45",h:"金浦入境",p:"領行李、過海關。落地到出關抓 30–40 分鐘。",spots:["김포공항"]},
+  {when:"19:45",h:"金浦入境",p:"領行李、過海關。落地到出關抓 30–40 分鐘。電子入境卡建議出發前先上網申請，現場可以省一道手續。",link:{t:"電子入境卡申請官網",u:"https://www.e-arrivalcard.go.kr/portal/main/index.do?locale=CH"},spots:["김포공항"]},
   {when:"20:15",key:true,h:"LG U+ 領交通卡 · SIM 實名認證",p:"國際線入境層的 LG U+ 櫃檯，領交通卡並辦 SIM 實名認證。認證沒做門號不會通，護照要拿在手上。落地 19:45、出關抓 30–40 分鐘（推算），到櫃檯大概 20:15，跟接送車的時間很接近——櫃檯營業到幾點先自己查好，會晚到就先跟司機說一聲。",spots:["김포공항 LG유플러스"]},
   {when:"20:30",h:"接送車到民宿",p:"訂了金浦機場到民宿的接送，不用自己拖行李轉 AREX。車程看當晚路況，抓 30–40 分鐘。"},
   {when:"21:30",h:"弘大宵夜",p:"Check-in 放行李後就近覓食。弘大這一帶餐廳開到很晚，第一晚不用排太多。弘大入口站走 9 號出口，出來就是商圈。",spots:["홍대 맛집"]},
@@ -1284,6 +1290,7 @@ DAYS.forEach((d,i)=>{
       <div class="card ${e.key?"key":""}">
         <h3>${esc(e.h)}</h3>
         ${e.p?`<p>${esc(e.p)}</p>`:""}
+        ${e.link?`<a class="link" href="${esc(e.link.u)}" target="_blank" rel="noopener">${esc(e.link.t)}</a>`:""}
         ${(e.spots||[]).length?`<div class="spots">${e.spots.map(q=>
           `<a class="spot" href="${naver(q)}" data-q="${esc(q)}" target="_blank" rel="noopener">${PIN}${esc(q)}</a>`).join("")}</div>`:""}
       </div>`;
