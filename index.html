@@ -221,7 +221,7 @@ body::after{
 .card:hover{border-color:var(--line-2);box-shadow:0 4px 16px -8px rgba(42,36,32,.12)}
 .card.key{border-left:2px solid var(--vermilion)}
 .card h3{font-family:var(--f-title);font-weight:700;font-size:25.5px;letter-spacing:.04em;line-height:1.5;color:var(--ink)}
-.card p{font-family:var(--f-title);font-size:20px;color:var(--ink-2);line-height:1.9;letter-spacing:.02em;margin-top:calc(var(--u)*.75)}
+.card p{font-family:var(--f-title);font-weight:700;font-size:20px;color:var(--ink-2);line-height:1.9;letter-spacing:.02em;margin-top:calc(var(--u)*.75)}
 
 .card .link{
   display:inline-block;margin-top:calc(var(--u)*.75);
@@ -719,12 +719,17 @@ body::after{
   color:var(--jade);margin-bottom:calc(var(--u)*1.75);
 }
 .log-tip[hidden]{display:none}
-.log-n{flex:1 1 auto;font-family:var(--f-title);font-size:19.5px;color:var(--ink-2);word-break:break-word}
+.log-n{flex:1 1 auto;font-family:var(--f-title);font-weight:700;font-size:19.5px;color:var(--ink-2);word-break:break-word}
 .log-o{
   display:block;font-family:var(--f-title);font-size:13.5px;font-style:normal;
   letter-spacing:.02em;color:var(--ink-3);margin-top:3px;
 }
-.log-a{flex:0 0 auto;font-family:var(--f-disp);font-size:18.5px;color:var(--ink)}
+.log-a{flex:0 0 auto;font-family:var(--f-disp);font-size:18.5px;color:var(--ink);text-align:right}
+/* 台幣當主角時，韓元原價縮成底下的小字 */
+.log-a em{
+  display:block;font-style:normal;font-family:var(--f-mono);
+  font-size:10px;letter-spacing:.04em;color:var(--ink-3);margin-top:2px;
+}
 .log-empty{
   font-family:var(--f-mono);font-size:11px;letter-spacing:.16em;
   color:var(--ink-3);margin-top:calc(var(--u)*4);
@@ -1959,7 +1964,12 @@ function logRow(x,personal){
   return `<div class="log-r${editId===x.id?" editing":""}">
     <span class="log-c">${esc(catOf(x))}</span>
     <span class="log-n">${esc(x.n||"—")}${bits.length?`<em class="log-o">${esc(bits.join(" · "))}</em>`:""}</span>
-    <span class="log-a">₩${nfmt(personal?per:x.a)}</span>
+    <span class="log-a">${(()=>{
+      const krw=personal?per:x.a;
+      /* 「我的帳」以台幣為主、韓元放小字；分帳頁維持韓元 */
+      const t=personal?myShareTwd(x):null;
+      return t!=null ? `NT$${nfmt(t)}<em>₩${nfmt(krw)}</em>` : `₩${nfmt(krw)}`;
+    })()}</span>
     <span class="log-acts">
       <button class="log-edit" data-e="${esc(x.id)}" type="button" tabindex="-1">編輯</button>
       <button class="log-del" data-i="${esc(x.id)}" type="button" tabindex="-1">刪除</button>
@@ -1981,9 +1991,11 @@ function viewByDay(){
     const sub=Math.round(items.reduce((s,x)=>s+myShare(x),0));
     /* 台幣換算走每日匯率，湊不齊才退回即時匯率 */
     const tw=twdList(items,true);
-    const twTxt=tw!=null?("≈ NT$"+nfmt(tw)):(RATE!=null?twdText(sub):"");
+    /* 台幣當主角、韓元退到小字；沒有匯率時仍以韓元為主 */
+    const main=tw!=null?("NT$"+nfmt(tw)):("₩"+nfmt(sub));
+    const sec=tw!=null?("₩"+nfmt(sub)):(RATE!=null?twdText(sub):"");
     return `<section class="log-sec">
-      <div class="log-h"><span class="log-d">DAY ${d.n} · ${esc(d.date)}</span><span class="log-sub">₩${nfmt(sub)}${twTxt?`<em class="log-sub-t">${twTxt}</em>`:""}</span></div>
+      <div class="log-h"><span class="log-d">DAY ${d.n} · ${esc(d.date)}</span><span class="log-sub">${main}${sec?`<em class="log-sub-t">${sec}</em>`:""}</span></div>
       ${items.map(x=>logRow(x,true)).join("")}
     </section>`;
   }).join("");
@@ -2128,13 +2140,16 @@ function viewByCat(){
     twdCat[c]=t!=null?t:(RATE!=null?by[c].sum*RATE:null);
   });
   return `<section class="log-sec">
-    <div class="log-h"><span class="log-d">我的分類統計</span><span class="log-sub">₩${nfmt(total)}</span></div>
+    <div class="log-h"><span class="log-d">我的分類統計</span><span class="log-sub">${(()=>{
+      const t=twdList(mineOnly(),true);
+      return t!=null ? `NT$${nfmt(t)}<em class="log-sub-t">₩${nfmt(total)}</em>` : `₩${nfmt(total)}`;
+    })()}</span></div>
     ${rows.map(c=>{
       const {sum,n}=by[c], pct=total?Math.round(sum/total*100):0;
       return `<div class="cat-r">
-        <div class="cat-top"><span class="cat-n">${esc(c)}</span><span class="cat-v">₩${nfmt(sum)}</span></div>
+        <div class="cat-top"><span class="cat-n">${esc(c)}</span><span class="cat-v">${twdCat[c]==null?"₩"+nfmt(sum):"NT$"+nfmt(twdCat[c])}</span></div>
         <div class="cat-bar"><span style="width:${pct}%"></span></div>
-        <div class="cat-meta"><span>${n} 筆 · ${pct}%</span><span>${twdCat[c]==null?"":"≈ NT$"+nfmt(twdCat[c])}</span></div>
+        <div class="cat-meta"><span>${n} 筆 · ${pct}%</span><span>${twdCat[c]==null?"":"₩"+nfmt(sum)}</span></div>
       </div>`;
     }).join("")}
   </section>`;
