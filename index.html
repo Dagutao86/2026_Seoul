@@ -663,9 +663,23 @@ body::after{
 }
 
 /* 分類統計 */
-.cat-r{padding:calc(var(--u)*1.5) 0;border-bottom:1px solid var(--line)}
+.cat-r{padding:calc(var(--u)*1.5) 0;border-bottom:1px solid var(--line);cursor:pointer}
+.cat-r:focus-visible{outline:1px solid var(--jade);outline-offset:2px}
 .cat-top{display:flex;justify-content:space-between;align-items:baseline;gap:var(--u)}
 .cat-n{font-family:var(--f-title);font-size:17.5px;color:var(--ink)}
+/* 展開箭頭：收合時朝下，展開時轉 180 度 */
+.cat-x{
+  display:inline-block;margin-left:7px;color:var(--ink-3);
+  transition:transform .25s,color .25s;vertical-align:middle;
+}
+.cat-r.open .cat-x{transform:rotate(180deg);color:var(--jade)}
+/* 展開的明細縮排一點，跟分類本身分得開 */
+.cat-sub{
+  padding-left:calc(var(--u)*1.5);
+  border-left:2px solid var(--line-2);
+  margin:calc(var(--u)*.5) 0 calc(var(--u)*2);
+}
+.cat-sub .log-r:last-child{border-bottom:none}
 .cat-v{font-family:var(--f-disp);font-size:18.5px;color:var(--ink);white-space:nowrap}
 .cat-bar{height:3px;background:var(--line);margin-top:calc(var(--u)*1);overflow:hidden}
 .cat-bar span{display:block;height:100%;background:var(--jade)}
@@ -1733,6 +1747,9 @@ const memSave=()=>{
 const meSave=()=>{ try{ localStorage.setItem("meId",me); }catch(_){} };
 
 let logMode="day";
+/* 依分類展開中的分類。只存在記憶體，重開回到全部收合 */
+const catOpen=new Set();
+const CHEV='<svg width="9" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 /* 正在編輯的紀錄 id；null 表示現在是新增模式。
    用 id 而不是陣列索引——合併與墓碑會讓索引位移。 */
 let editId=null;
@@ -1966,9 +1983,13 @@ function logRow(x,personal){
     <span class="log-n">${esc(x.n||"—")}${bits.length?`<em class="log-o">${esc(bits.join(" · "))}</em>`:""}</span>
     <span class="log-a">${(()=>{
       const krw=personal?per:x.a;
-      /* 「我的帳」以台幣為主、韓元放小字；分帳頁維持韓元 */
-      const t=personal?myShareTwd(x):null;
-      return t!=null ? `NT$${nfmt(t)}<em>₩${nfmt(krw)}</em>` : `₩${nfmt(krw)}`;
+      /* 「我的帳」以台幣為主、韓元放小字 */
+      if(personal){
+        const t=myShareTwd(x);
+        return t!=null ? `NT$${nfmt(t)}<em>₩${nfmt(krw)}</em>` : `₩${nfmt(krw)}`;
+      }
+      /* 分帳頁照當初記帳用的幣別顯示：台幣記的就是台幣，韓元記的就是韓元 */
+      return (x.nt!=null&&x.nt>0) ? `NT$${nfmt(x.nt)}` : `₩${nfmt(krw)}`;
     })()}</span>
     <span class="log-acts">
       <button class="log-edit" data-e="${esc(x.id)}" type="button" tabindex="-1">編輯</button>
@@ -2013,35 +2034,42 @@ function viewSplit(){
   });
   if(!es.length) return '<div class="log-empty">目前沒有需要分帳的紀錄<br>（每一筆都是自己付、自己用）</div>';
 
+  /* 明細照原始幣別顯示，所以每一列的幣別可能不同，加總沒辦法混著算。
+     匯率齊了就統一換成台幣（跟結算同一套），沒齊才退回韓元。 */
+  const twd=twdReady();
+  const val=e=>twd?twdOf(e):e.a;
+  const cur=v=>twd?("NT$"+nfmt(v)):("₩"+nfmt(v));
+
   const paid={}, owe={};
   const touch=id=>{ if(id&&paid[id]===undefined){ paid[id]=0; owe[id]=0; } };
   es.forEach(e=>{
-    touch(e.by); if(e.by) paid[e.by]+=e.a;
+    const amt=val(e);
+    touch(e.by); if(e.by) paid[e.by]+=amt;
     const sh=shareOf(e);
-    const per=e.a/sh.length;
+    const per=amt/sh.length;
     sh.forEach(p=>{ touch(p); owe[p]+=per; });
   });
   const ids=Object.keys(paid).sort((x,y)=>paid[y]-paid[x]);
-  const total=es.reduce((s,x)=>s+x.a,0);
+  const total=es.reduce((s,x)=>s+val(x),0);
 
   const by={};
   es.forEach(e=>{ (by[e.d]=by[e.d]||[]).push(e); });
   const days=LOG_DAYS.map(d=>{
     const items=by[d.n]; if(!items||!items.length) return "";
-    const sub=items.reduce((s,x)=>s+x.a,0);
+    const sub=items.reduce((s,x)=>s+val(x),0);
     return `<section class="log-sec">
-      <div class="log-h"><span class="log-d">DAY ${d.n} · ${esc(d.date)}</span><span class="log-sub">₩${nfmt(sub)}</span></div>
+      <div class="log-h"><span class="log-d">DAY ${d.n} · ${esc(d.date)}</span><span class="log-sub">${cur(sub)}</span></div>
       ${items.map(x=>logRow(x,false)).join("")}
     </section>`;
   }).join("");
 
   return `<section class="log-sec">
-    <div class="log-h"><span class="log-d">誰先墊的</span><span class="log-sub">需分帳 ₩${nfmt(total)}</span></div>
+    <div class="log-h"><span class="log-d">誰先墊的</span><span class="log-sub">需分帳 ${cur(total)}</span></div>
     ${ids.map(id=>`<div class="sp-r">
       <span class="sp-n">${esc(memName(id))}${id===me?"<em>ME</em>":""}</span>
-      <span class="sp-v"><b>₩${nfmt(paid[id])}</b>應分攤 ₩${nfmt(owe[id])}</span>
+      <span class="sp-v"><b>${cur(paid[id])}</b>應分攤 ${cur(owe[id])}</span>
     </div>`).join("")}
-    <div class="bal-note txt">大字是這個人先掏出去的錢，下面小字是他該分攤的金額。<br>只列有跟別人分攤的帳，自己付自己用的不算。差額請看「結算」。</div>
+    <div class="bal-note txt">大字是這個人先掏出去的錢，下面小字是他該分攤的金額。<br>下面每一筆照當初記帳的幣別顯示，上面的合計${twd?"統一換算成台幣":"統一用韓元"}。只列有跟別人分攤的帳，自己付自己用的不算。差額請看「結算」。</div>
   </section>${days}`;
 }
 
@@ -2146,11 +2174,14 @@ function viewByCat(){
     })()}</span></div>
     ${rows.map(c=>{
       const {sum,n}=by[c], pct=total?Math.round(sum/total*100):0;
-      return `<div class="cat-r">
-        <div class="cat-top"><span class="cat-n">${esc(c)}</span><span class="cat-v">${twdCat[c]==null?"₩"+nfmt(sum):"NT$"+nfmt(twdCat[c])}</span></div>
+      const open=catOpen.has(c);
+      return `<div class="cat-r${open?" open":""}" data-cat="${esc(c)}" role="button" tabindex="0"
+        aria-expanded="${open}" aria-label="${esc(c)} ${open?"收合":"展開"}明細">
+        <div class="cat-top"><span class="cat-n">${esc(c)}<i class="cat-x">${CHEV}</i></span><span class="cat-v">${twdCat[c]==null?"₩"+nfmt(sum):"NT$"+nfmt(twdCat[c])}</span></div>
         <div class="cat-bar"><span style="width:${pct}%"></span></div>
         <div class="cat-meta"><span>${n} 筆 · ${pct}%</span><span>${twdCat[c]==null?"":"₩"+nfmt(sum)}</span></div>
-      </div>`;
+      </div>
+      ${open?`<div class="cat-sub">${items[c].map(x=>logRow(x,true)).join("")}</div>`:""}`;
     }).join("")}
   </section>`;
 }
@@ -2450,7 +2481,28 @@ logList.addEventListener("click",e=>{
     if(!Object.keys(manual).length){ say("沒有改到任何一天",0); return; }
     say("儲存中…"); fxSync(manual,say,false); return;
   }
+  /* 依分類：點分類展開／收合明細 */
+  const cr=e.target.closest(".cat-r");
+  if(cr){ catToggle(cr.dataset.cat); return; }
   rowsClose();   /* 點別處收起來 */
+});
+
+function catToggle(c){
+  if(!c) return;
+  if(catOpen.has(c)) catOpen.delete(c); else catOpen.add(c);
+  logRender();
+  /* 重新 render 之後焦點會掉，補回去讓鍵盤操作接得下去 */
+  const el=logList.querySelector(`.cat-r[data-cat="${CSS.escape(c)}"]`);
+  if(el) el.focus();
+}
+
+/* 分類列是 role="button"，鍵盤也要能展開 */
+logList.addEventListener("keydown",e=>{
+  if(e.key!=="Enter"&&e.key!==" ") return;
+  const cr=e.target.closest?.(".cat-r");
+  if(!cr) return;
+  e.preventDefault();
+  catToggle(cr.dataset.cat);
 });
 
 shReset();
