@@ -1992,8 +1992,11 @@ function logRow(x,personal){
         const t=myShareTwd(x);
         return t!=null ? `NT$${nfmt(t)}<em>₩${nfmt(krw)}</em>` : `₩${nfmt(krw)}`;
       }
-      /* 分帳頁照當初記帳用的幣別顯示：台幣記的就是台幣，韓元記的就是韓元 */
-      return (x.nt!=null&&x.nt>0) ? `NT$${nfmt(x.nt)}` : `₩${nfmt(krw)}`;
+      /* 分帳頁照當初記帳用的幣別顯示：台幣記的就是台幣，韓元記的就是韓元。
+         韓元的再附一行台幣換算（用當天匯率），換不出來就只顯示韓元 */
+      if(x.nt!=null&&x.nt>0) return `NT$${nfmt(x.nt)}`;
+      const t=twdOf(x);
+      return t!=null ? `₩${nfmt(krw)}<em>≈ NT$${nfmt(t)}</em>` : `₩${nfmt(krw)}`;
     })()}</span>
     <span class="log-acts">
       <button class="log-edit" data-e="${esc(x.id)}" type="button" tabindex="-1">編輯</button>
