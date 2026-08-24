@@ -680,6 +680,18 @@ body::after{
   margin:calc(var(--u)*.5) 0 calc(var(--u)*2);
 }
 .cat-sub .log-r:last-child{border-bottom:none}
+
+/* 可收合的日期標題 */
+.day-h{cursor:pointer}
+.day-h:focus-visible{outline:1px solid var(--jade);outline-offset:2px}
+.day-h .cat-x{margin-left:6px}
+.day-h.open .cat-x{transform:rotate(180deg);color:var(--jade)}
+/* 收起來時用筆數提示裡面有東西 */
+.day-n{
+  font-family:var(--f-mono);font-style:normal;font-size:9.5px;letter-spacing:.08em;
+  color:var(--ink-3);margin-left:7px;
+}
+.day-h.open .day-n{opacity:0}
 .cat-v{font-family:var(--f-disp);font-size:18.5px;color:var(--ink);white-space:nowrap}
 .cat-bar{height:3px;background:var(--line);margin-top:calc(var(--u)*1);overflow:hidden}
 .cat-bar span{display:block;height:100%;background:var(--jade)}
@@ -1211,10 +1223,10 @@ const DAYS=[
 {n:5,date:"8/24",dow:"一",city:"SEOUL",...LOC.hongdae,title:"延南洞 · 醫美",stay:"宿 · 弘大",
  events:[
   {when:"上午",h:"延南洞",p:"首爾小京都風，選品店與質感咖啡廳。弘大入口站走 3 號出口，出來就是延南洞這側。",spots:["연남동"]},
-  {when:"中午",h:"延南洞午餐",spots:["연남동 맛집"]},
+  {when:"14:30",h:"第一곱창 弘大直營店",p:"王十里名店的弘大分店，韓國前三的곱창店。麻浦區西橋洞 358-45（와우산로21길 28-7 1F）。綜合烤肉 600g ₩62,000、韓牛小腸／大腸各 250g ₩28,000。營業 14:30–23:30、週日公休——開門就是 14:30，比一般午餐晚，上午延南洞可以慢慢逛。",spots:["제일곱창 홍대직영점"]},
   {when:"下午",h:"弘大主商圈逛街",p:"潮流服飾、美妝店、選品店。這天步調放輕鬆，傍晚療程不趕時間。從延南洞回來換走 9 號出口才是商圈方向。",spots:["홍대 거리"]},
   {when:"18:00",key:true,h:"麗妍常皮膚科 弘大店",p:"麻浦區楊花路 18 街 3 號 About Me 大樓 6F，弘大入口站 8 號出口走路就到。營業到 20:00，18:00 進場約留兩小時。",spots:["리앤장의원 홍대"]},
-  {when:"21:00",key:true,h:"야키토리 묵 燒鳥",p:"麻浦區延南洞 223-102。米其林指南收錄，主廚金炳默是《黑白大廚》的燒鳥王。炭火直烤當日現處理的韓國土雞，吧台看廚房。17:00–23:00、最後點餐 22:00。只做 omakase、分兩輪、一定要先訂位——21:00 這個時間要先確認是哪一輪，訂不到就改回附近覓食。療程 20:00 結束走過去很近。",spots:["야키토리 묵"]},
+  {when:"21:00",key:true,h:"야키토리 묵 燒鳥",p:"已訂位 21:00。麻浦區延南洞 223-102。米其林指南收錄，主廚金炳默是《黑白大廚》的燒鳥王，炭火直烤當日現處理的韓國土雞，吧台看廚房。只做 omakase 分兩輪，遲到會影響整輪，療程 20:00 結束走過去很近，抓好時間。",spots:["야키토리 묵"]},
   {when:"睡前",h:"回民宿",p:"Seoul Seodaemun-gu Sinchon-ro 3na-gil 3。走弘大入口站約 8 分鐘、新村站約 13 分鐘。點下方地址開 Naver Map，再按導航就會帶路。",spots:["서울 서대문구 신촌로3나길 3"]}
  ]},
 
@@ -1754,6 +1766,9 @@ const meSave=()=>{ try{ localStorage.setItem("meId",me); }catch(_){} };
 let logMode="day";
 /* 依分類展開中的分類。只存在記憶體，重開回到全部收合 */
 const catOpen=new Set();
+/* 依日期與分帳展開中的日期。預設全部收起來，七天的明細一次攤開太長了。
+   key 用 day-N／split-N 分開存，兩個分頁互不影響 */
+const dayOpen=new Set();
 const CHEV='<svg width="9" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 /* 正在編輯的紀錄 id；null 表示現在是新增模式。
    用 id 而不是陣列索引——合併與墓碑會讓索引位移。 */
@@ -2024,10 +2039,21 @@ function viewByDay(){
     const main=tw!=null?("NT$"+nfmt(tw)):("₩"+nfmt(sub));
     const sec=tw!=null?("₩"+nfmt(sub)):(RATE!=null?twdText(sub):"");
     return `<section class="log-sec">
-      <div class="log-h"><span class="log-d">DAY ${d.n} · ${esc(d.date)}</span><span class="log-sub">${main}${sec?`<em class="log-sub-t">${sec}</em>`:""}</span></div>
-      ${items.map(x=>logRow(x,true)).join("")}
+      ${dayHead("day-"+d.n,`DAY ${d.n} · ${esc(d.date)}`,items.length,
+                `${main}${sec?`<em class="log-sub-t">${sec}</em>`:""}`)}
+      ${dayOpen.has("day-"+d.n)?items.map(x=>logRow(x,true)).join(""):""}
     </section>`;
   }).join("");
+}
+
+/* 可收合的日期標題。七天全部攤開太長，預設收起來只看日期與小計 */
+function dayHead(key,label,n,sub){
+  const open=dayOpen.has(key);
+  return `<div class="log-h day-h${open?" open":""}" data-day="${esc(key)}"
+    role="button" tabindex="0" aria-expanded="${open}" aria-label="${label} ${open?"收合":"展開"}明細">
+    <span class="log-d">${label}<i class="cat-x">${CHEV}</i><em class="day-n">${n}</em></span>
+    <span class="log-sub">${sub}</span>
+  </div>`;
 }
 
 /* 分帳：全團的付款明細——誰先墊了多少、那筆是幫誰付的 */
@@ -2066,8 +2092,8 @@ function viewSplit(){
     const items=by[d.n]; if(!items||!items.length) return "";
     const sub=items.reduce((s,x)=>s+val(x),0);
     return `<section class="log-sec">
-      <div class="log-h"><span class="log-d">DAY ${d.n} · ${esc(d.date)}</span><span class="log-sub">${cur(sub)}</span></div>
-      ${items.map(x=>logRow(x,false)).join("")}
+      ${dayHead("split-"+d.n,`DAY ${d.n} · ${esc(d.date)}`,items.length,cur(sub))}
+      ${dayOpen.has("split-"+d.n)?items.map(x=>logRow(x,false)).join(""):""}
     </section>`;
   }).join("");
 
@@ -2489,6 +2515,9 @@ logList.addEventListener("click",e=>{
     if(!Object.keys(manual).length){ say("沒有改到任何一天",0); return; }
     say("儲存中…"); fxSync(manual,say,false); return;
   }
+  /* 依日期／分帳：點日期展開／收合當天明細 */
+  const dh=e.target.closest("[data-day]");
+  if(dh){ dayToggle(dh.dataset.day); return; }
   /* 依分類：點分類展開／收合明細 */
   const cr=e.target.closest(".cat-r");
   if(cr){ catToggle(cr.dataset.cat); return; }
@@ -2504,9 +2533,19 @@ function catToggle(c){
   if(el) el.focus();
 }
 
-/* 分類列是 role="button"，鍵盤也要能展開 */
+function dayToggle(k){
+  if(!k) return;
+  if(dayOpen.has(k)) dayOpen.delete(k); else dayOpen.add(k);
+  logRender();
+  const el=logList.querySelector(`[data-day="${CSS.escape(k)}"]`);
+  if(el) el.focus();
+}
+
+/* 分類列與日期列都是 role="button"，鍵盤也要能展開 */
 logList.addEventListener("keydown",e=>{
   if(e.key!=="Enter"&&e.key!==" ") return;
+  const dh=e.target.closest?.("[data-day]");
+  if(dh){ e.preventDefault(); dayToggle(dh.dataset.day); return; }
   const cr=e.target.closest?.(".cat-r");
   if(!cr) return;
   e.preventDefault();
